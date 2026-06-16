@@ -252,7 +252,7 @@
 - [x] **6.1c** — Tests de edge cases en runTests (errores con logs, tipos de error)
 
 **Criterio de aceptación**:  
-- 34 tests en total, todos pasan con `npm test`.
+- 53 tests en total, todos pasan con `npm test`.
 
 ---
 
@@ -410,11 +410,11 @@
 
 ### 10.1 Web Worker para sandbox de ejecución
 
-- [ ] **10.1a** — Crear `js/sandbox.worker.ts` (o `worker.js`) que reciba código del alumno + tests y ejecute en un Worker
-- [ ] **10.1b** — Implementar comunicación Worker ↔ app.ts con `postMessage`/`onmessage`
-- [ ] **10.1c** — Añadir timeout de 3s que termine el Worker si no responde (sí detiene bucles infinitos)
-- [ ] **10.1d** — Reemplazar `new Function()` por el Worker en `runTests()`
-- [ ] **10.1e** — Capturar `console.log` del alumno dentro del Worker y enviarlo al hilo principal
+- [x] **10.1a** — Crear `js/sandbox.worker.ts` que reciba código del alumno + tests y ejecute en un Worker
+- [x] **10.1b** — Implementar comunicación Worker ↔ app.ts con `postMessage`/`onmessage`
+- [x] **10.1c** — Añadir timeout de 3s que termine el Worker si no responde (sí detiene bucles infinitos)
+- [x] **10.1d** — Reemplazar `new Function()` por `async runTestsInWorker()` en `app.ts`; mantener `runTests()` síncrona para tests de Vitest
+- [x] **10.1e** — Capturar `console.log` del alumno dentro del Worker y enviarlo al hilo principal mediante `postMessage`
 
 **Criterio de aceptación**:
 - Código con `while(true){}` no cuelga la página (el Worker se termina por timeout)
@@ -456,7 +456,7 @@
 
 - [x] **11.2a** — Añadir tipo `Test` y `TestExpression` en `types.ts`
 - [x] **11.2b** — Modificar `runTests()` para soportar `string | TestExpression` y añadir `getTestDisplay()`
-- [ ] **11.2c** — Migrar algunas lecciones existentes al nuevo formato (3-5 lecciones de ejemplo)
+- [x] **11.2c** — Migrar 13 lecciones al nuevo formato: 3 (Funciones), 15 (try/catch), 16 (calcularPrecio), 17 (arrow), 35 (Patrones), 37 (Optimización), 38 (Complejidad), 41-44 (Vite/Despliegue/VarEnt/CI/CD), 48 (Singleton), 49 (Observer), 50 (Factory), 51 (Ficha), 53 (Generador passwords)
 - [x] **11.2d** — Añadir tests de Vitest (5 tests: expression, function sin expected, function con expected, fails on mismatch, mixed)
 
 **Criterio de aceptación**:

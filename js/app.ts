@@ -136,7 +136,7 @@ function getNextLessonId(currentId: number): number | null {
   return lessons[idx + 1].id;
 }
 
-function runCode(): void {
+async function runCode(): Promise<void> {
   if (!currentLesson || !editor) return;
 
   const userCode = editor.getValue().trim();
@@ -145,7 +145,9 @@ function runCode(): void {
     return;
   }
 
-  const result = runTests(userCode, currentLesson.tests);
+  showResult({ status: 'info', message: 'Ejecutando...' }, selectLesson);
+
+  const result = await runTestsInWorker(userCode, currentLesson.tests);
   if (result.passed) {
     addCompleted(currentLesson.id);
     const nextId = getNextLessonId(currentLesson.id);
@@ -231,6 +233,38 @@ export function runTests(userCode: string, tests: Test[]): { passed: boolean; fa
     console.log = originalLog;
   }
 }
+
+function runTestsInWorker(userCode: string, tests: Test[]): Promise<{ passed: boolean; failedIndex: number | null; logs: string[] }> {
+  return new Promise((resolve) => {
+    try {
+      const worker = new Worker(new URL('./sandbox.worker.ts', import.meta.url), { type: 'module' });
+      const timeout = setTimeout(() => {
+        worker.terminate();
+        resolve({ passed: false, failedIndex: null, logs: ['La ejecución tomó demasiado tiempo y fue cancelada.'] });
+      }, 3000);
+
+      worker.onmessage = (e) => {
+        clearTimeout(timeout);
+        worker.terminate();
+        resolve(e.data);
+      };
+
+      worker.onerror = (err) => {
+        clearTimeout(timeout);
+        worker.terminate();
+        resolve({ passed: false, failedIndex: null, logs: ['Error en el Worker: ' + err.message] });
+      };
+
+      worker.postMessage({
+        userCode,
+        testExpressions: tests.map(t => getTestExpression(t)),
+      });
+    } catch {
+      resolve({ passed: false, failedIndex: null, logs: ['Error al iniciar el Worker.'] });
+    }
+  });
+}
+
 
 const runBtn = getEl<HTMLButtonElement>(DOM_IDS.RUN_BTN);
 if (runBtn) runBtn.addEventListener('click', runCode);

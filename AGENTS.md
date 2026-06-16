@@ -18,8 +18,15 @@ Plataforma web interactiva para aprender JavaScript con lecciones, editor de có
 | `css/style.css` | Estilos visuales (layout 2 columnas, colores, responsive) |
 | `js/app.ts` | Lógica principal: renderizar lecciones, editor CodeMirror, ejecutar código y tests |
 | `js/lessons.ts` | Lecciones como array de `Lesson[]` (importado como módulo) |
-| `js/types.ts` | Interfaces TypeScript (`Lesson`, `ModuleGroup`, `LessonResult`) |
+| `js/types.ts` | Interfaces TypeScript (`Lesson`, `ModuleGroup`, `LessonResult`, `TestExpression`) |
 | `js/app.test.ts` | Tests unitarios con Vitest |
+| `js/renderer.ts` | Parseador markdown a HTML |
+| `js/storage.ts` | Persistencia localStorage (progreso, código, tema) |
+| `js/theme.ts` | Gestión de tema claro/oscuro |
+| `js/dom.ts` | Manipulación DOM (showResult, getLessonItems) |
+| `js/editor.ts` | Inicialización y control de CodeMirror |
+| `js/constants.ts` | IDs del DOM y clases CSS centralizadas |
+| `js/sandbox.worker.ts` | Web Worker para ejecución sandbox (timeout 3s, captura console.log) |
 | `tsconfig.json` | Configuración de TypeScript |
 | `vite.config.ts` | Configuración de Vite |
 | `vitest.config.ts` | Configuración de Vitest |
@@ -107,9 +114,13 @@ function runTests(userCode, tests) {
 Cada test debe ser una expresión que retorne `true/false`. Las variables declaradas en `userCode` están disponibles para los tests.
 
 ## Tests del Proyecto (Vitest)
-Los tests del código fuente están en `js/app.test.ts`:
-- `renderTheory` — convierte markdown a HTML (negrita, code blocks, inline code, escaping)
-- `runTests` — valida el sistema de evaluación de ejercicios
+Los tests del código fuente están en `js/app.test.ts` (53 tests):
+- `renderTheory` — convierte markdown a HTML (negrita, code blocks, inline code, escaping, listas, enlaces)
+- `runTests` — valida el sistema de evaluación de ejercicios (incluye `TestExpression`)
+- `getProgress` / `saveProgress` — persistencia con validación
+- `saveCode` / `getSavedCode` / `removeSavedCode` — persistencia de código
+- `getTestDisplay` — muestra representación legible de tests
+- `showResult` — manipulación DOM (idle, error, success con botón "Siguiente")
 - `Estructura de lecciones` — verifica que todas las lecciones tienen los campos requeridos
 - `Tipos avanzados` — verifica los tipos TypeScript (ModuleGroup, LessonResult)
 
@@ -123,11 +134,12 @@ npm run test:watch
 ## Funciones Clave en app.ts
 - `renderLessonList()` — agrupa lecciones por módulo y las muestra en el sidebar
 - `selectLesson(id)` — carga teoría y ejercicio en el área principal
-- `renderTheory(text)` — convierte markdown simple a HTML
-- `initEditor()` — inicializa CodeMirror
-- `runCode()` — ejecuta el código del usuario y corre los tests
-- `runTests(userCode, tests)` — valida el código contra los tests
-- `showResult(success, message)` — muestra feedback visual
+- `renderTheory(text)` — convierte markdown simple a HTML (en renderer.ts)
+- `initEditor()` — inicializa CodeMirror (en editor.ts)
+- `runCode()` — ejecuta el código del usuario en un Web Worker y corre los tests
+- `runTests(userCode, tests)` — versión síncrona para tests de Vitest
+- `runTestsInWorker(userCode, tests)` — versión asíncrona con Web Worker (3s timeout)
+- `showResult(success, message)` — muestra feedback visual (en dom.ts)
 
 ## Módulos del Curso
 1. Fundamentos del Lenguaje (variables, tipos, operadores, conversión)
