@@ -1,9 +1,10 @@
 import { describe, it, expect, assertType, beforeEach } from 'vitest';
-import type { Lesson, ModuleGroup, LessonResult } from './types';
+import type { Lesson, ModuleGroup, LessonResult, Test, TestExpression } from './types';
 import LESSONS from './lessons';
 import { runTests } from './app';
 import { getProgress, saveProgress, getSavedCode, saveCode, removeSavedCode } from './storage';
 import { renderTheory } from './renderer';
+import { showResult } from './dom';
 
 describe('renderTheory', () => {
   it('convierte **negrita** a <strong>', () => {
@@ -115,6 +116,37 @@ describe('runTests', () => {
   });
 });
 
+describe('TestExpression (nuevo formato)', () => {
+  it('soporta TestExpression tipo expression', () => {
+    const tests: TestExpression[] = [{ type: 'expression', code: 'x === 1' }];
+    expect(runTests('let x = 1;', tests).passed).toBe(true);
+  });
+
+  it('soporta TestExpression tipo function sin expected', () => {
+    const tests: TestExpression[] = [{ type: 'function', code: 'typeof sumar !== "undefined"' }];
+    expect(runTests('function sumar(a,b){return a+b}', tests).passed).toBe(true);
+  });
+
+  it('soporta TestExpression tipo function con expected', () => {
+    const tests: TestExpression[] = [{ type: 'function', code: 'sumar(2, 3)', expected: 5 }];
+    expect(runTests('function sumar(a,b){return a+b}', tests).passed).toBe(true);
+  });
+
+  it('funcion con expected falla si no coincide', () => {
+    const tests: TestExpression[] = [{ type: 'function', code: 'sumar(2, 3)', expected: 10 }];
+    expect(runTests('function sumar(a,b){return a+b}', tests).passed).toBe(false);
+  });
+
+  it('mezcla string y TestExpression', () => {
+    const tests: Test[] = [
+      'x === 1',
+      { type: 'expression' as const, code: 'typeof y !== "undefined"' },
+      { type: 'function' as const, code: 'x + y', expected: 3 },
+    ];
+    expect(runTests('let x = 1; let y = 2;', tests).passed).toBe(true);
+  });
+});
+
 describe('Estructura de lecciones', () => {
   it('LESSONS es un array', () => {
     expect(Array.isArray(LESSONS)).toBe(true);
@@ -139,10 +171,10 @@ describe('Estructura de lecciones', () => {
     });
   });
 
-  it('todos los tests en cada leccion son strings', () => {
+  it('todos los tests en cada leccion son strings u objetos Test', () => {
     LESSONS.forEach((lesson: Lesson) => {
       lesson.tests.forEach((test) => {
-        expect(typeof test).toBe('string');
+        expect(typeof test === 'string' || (typeof test === 'object' && test !== null)).toBe(true);
       });
     });
   });
@@ -266,6 +298,51 @@ describe('Tipos avanzados', () => {
     expect(success.status).toBe('success');
     expect(error.status).toBe('error');
     expect(info.status).toBe('info');
+  });
+});
+
+describe('showResult (DOM)', () => {
+  beforeEach(() => {
+    document.body.innerHTML = `
+      <div id="result-area" class="hidden">
+        <p id="result-msg"></p>
+      </div>
+    `;
+  });
+
+  it('oculta result-area con status idle', () => {
+    showResult({ status: 'idle' });
+    const area = document.getElementById('result-area');
+    expect(area?.classList.contains('hidden')).toBe(true);
+  });
+
+  it('muestra mensaje de error', () => {
+    showResult({ status: 'error', message: 'Test falló' });
+    const msg = document.getElementById('result-msg');
+    expect(msg?.textContent).toBe('Test falló');
+    expect(document.getElementById('result-area')?.classList.contains('error')).toBe(true);
+  });
+
+  it('muestra mensaje de exito', () => {
+    showResult({ status: 'success', message: 'Correcto!' });
+    const msg = document.getElementById('result-msg');
+    expect(msg?.textContent).toBe('Correcto!');
+    expect(document.getElementById('result-area')?.classList.contains('success')).toBe(true);
+  });
+
+  it('muestra boton siguiente leccion si hay nextLessonId y callback', () => {
+    showResult({ status: 'success', message: 'Bien', nextLessonId: 2 }, () => {});
+    const btn = document.getElementById('next-lesson-btn');
+    expect(btn).not.toBeNull();
+    expect(btn?.textContent).toContain('Siguiente');
+  });
+
+  it('llama al callback al hacer clic en siguiente leccion', () => {
+    let calledId: number | null = null;
+    showResult({ status: 'success', message: 'Bien', nextLessonId: 5 }, (id) => { calledId = id; });
+    const btn = document.getElementById('next-lesson-btn');
+    btn?.click();
+    expect(calledId).toBe(5);
   });
 });
 

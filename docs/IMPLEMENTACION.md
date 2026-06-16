@@ -385,10 +385,11 @@
 - [x] **9.2a** — Test: `renderTheory` con listas produce `<ul><li>` correcto
 - [x] **9.2b** — Test: `renderTheory` combina párrafos y listas en orden correcto
 - [x] **9.2c** — Test: `renderTheory` con enlaces produce `<a>` con href y texto
-- [ ] **9.2d** — Test: `showResult()` con `LessonResult.status='error'` muestra mensaje de error (requiere DOM real con jsdom)
+- [x] **9.2d** — Test: `showResult()` con DOM real (jsdom): idle oculta, error muestra mensaje, success muestra botón "Siguiente lección", callback al hacer clic
 
 **Criterio de aceptación**:
 - Tests de renderTheory verifican HTML generado
+- Tests de showResult verifican manipulación DOM
 - `npm test` pasa
 
 ---
@@ -453,10 +454,10 @@
 
 ### 11.2 Sistema extendido de tests del alumno
 
-- [ ] **11.2a** — Añadir tipo `Test` en `types.ts`: `{ type: 'expression' | 'function', code: string, expected?: unknown }`
-- [ ] **11.2b** — Modificar `runTests()` para soportar ambos tipos de test
+- [x] **11.2a** — Añadir tipo `Test` y `TestExpression` en `types.ts`
+- [x] **11.2b** — Modificar `runTests()` para soportar `string | TestExpression` y añadir `getTestDisplay()`
 - [ ] **11.2c** — Migrar algunas lecciones existentes al nuevo formato (3-5 lecciones de ejemplo)
-- [ ] **11.2d** — Añadir tests de Vitest para el nuevo sistema de tests
+- [x] **11.2d** — Añadir tests de Vitest (5 tests: expression, function sin expected, function con expected, fails on mismatch, mixed)
 
 **Criterio de aceptación**:
 - Tests de tipo `function` ejecutan una función del alumno y comparan resultado con `expected`
@@ -467,10 +468,10 @@
 
 ### 11.3 Refactor CSS con BEM
 
-- [ ] **11.3a** — Identificar clases CSS inconsistentes (mezcla de estilos de naming)
-- [ ] **11.3b** — Renombrar clases siguiendo convención BEM (ej: `module-header` → `sidebar__header`)
-- [ ] **11.3c** — Actualizar `app.ts` y `index.html` con los nuevos nombres de clase
-- [ ] **11.3d** — Verificar que no haya cambios visuales tras el refactor
+- [x] **11.3a** — Identificar clases CSS inconsistentes: `module-header` es un elemento del sidebar
+- [x] **11.3b** — Renombrar `module-header` → `sidebar__header` en CSS, constants.ts y app.ts
+- [x] **11.3c** — Actualizar referencias en `constants.ts` y `app.ts` (usaban `CSS_CLASSES.MODULE_HEADER`)
+- [ ] **11.3d** — Verificar que no haya cambios visuales tras el refactor (pruébalo con `npm run dev`)
 
 **Criterio de aceptación**:
 - Todas las clases CSS siguen una convención consistente

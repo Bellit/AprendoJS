@@ -23,7 +23,7 @@ export const DOM_IDS = {
 
 export const CSS_CLASSES = {
   LESSON_LIST_ITEM: '.lesson-list li',
-  MODULE_HEADER: 'module-header',
+  MODULE_HEADER: 'sidebar__header',
   COMPLETED: 'completed',
   ACTIVE: 'active',
   HIDDEN: 'hidden',

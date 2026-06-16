@@ -244,7 +244,7 @@ body {
   list-style: none;
 }
 
-.lesson-list .module-header {
+.lesson-list .sidebar__header {
   font-size: 0.7rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -255,7 +255,7 @@ body {
   pointer-events: none;
 }
 
-.lesson-list li:not(.module-header) {
+.lesson-list li:not(.sidebar__header) {
   padding: 0.6rem 0.75rem;
   margin-bottom: 0.2rem;
   border-radius: var(--radius-sm);
@@ -266,7 +266,7 @@ body {
   border-left: 3px solid transparent;
 }
 
-.lesson-list li:not(.module-header):hover {
+.lesson-list li:not(.sidebar__header):hover {
   background: var(--color-hover);
   color: var(--color-text);
   border-left-color: var(--color-primary-light);

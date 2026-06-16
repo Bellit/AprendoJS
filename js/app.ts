@@ -1,4 +1,4 @@
-import type { Lesson, ModuleGroup } from './types';
+import type { Lesson, ModuleGroup, Test, TestExpression } from './types';
 import LESSONS from './lessons';
 import { getEl, showResult, getLessonItems } from './dom';
 import { renderTheory } from './renderer';
@@ -156,7 +156,7 @@ function runCode(): void {
   } else {
     const idx = result.failedIndex;
     const msg = idx !== null && currentLesson.tests[idx]
-      ? `Test ${idx + 1} falló: \`${currentLesson.tests[idx]}\``
+      ? `Test ${idx + 1} falló: \`${getTestDisplay(currentLesson.tests[idx])}\``
       : 'Algo no está bien. Revisa tu código e inténtalo de nuevo.';
     showResult({ status: 'error', message: msg }, selectLesson);
   }
@@ -165,14 +165,27 @@ function runCode(): void {
   }
 }
 
-export function runTests(userCode: string, tests: string[]): { passed: boolean; failedIndex: number | null; logs: string[] } {
+function getTestExpression(test: Test): string {
+  if (typeof test === 'string') return test;
+  if (test.type === 'function' && test.expected !== undefined) {
+    return `(${test.code}) === ${JSON.stringify(test.expected)}`;
+  }
+  return test.code;
+}
+
+function getTestDisplay(test: Test): string {
+  if (typeof test === 'string') return test;
+  return test.code;
+}
+
+export function runTests(userCode: string, tests: Test[]): { passed: boolean; failedIndex: number | null; logs: string[] } {
   const logs: string[] = [];
   const originalLog = console.log;
   console.log = (...args: unknown[]) => {
     logs.push(args.map(String).join(' '));
   };
 
-  const testCode = tests.map((t, i) => `if (!(${t})) { return ${i}; }`).join(' ') + '; return -1;';
+  const testCode = tests.map((t, i) => `if (!(${getTestExpression(t)})) { return ${i}; }`).join(' ') + '; return -1;';
   const fullCode = userCode + ';' + testCode;
 
   try {

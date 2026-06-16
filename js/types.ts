@@ -1,3 +1,11 @@
+export interface TestExpression {
+  type: 'expression' | 'function';
+  code: string;
+  expected?: unknown;
+}
+
+export type Test = string | TestExpression;
+
 export interface Lesson {
   id: number;
   module: string;
@@ -5,7 +13,7 @@ export interface Lesson {
   theory: string;
   exercise: string;
   solution: string;
-  tests: string[];
+  tests: Test[];
 }
 
 export type ModuleGroup = Record<string, Lesson[]>;
