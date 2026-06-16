@@ -1,0 +1,26 @@
+{
+  "name": "aprendojs",
+  "version": "1.0.0",
+  "description": "Plataforma interactiva para aprender JavaScript",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "keywords": [
+    "javascript",
+    "aprendizaje",
+    "codemirror"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "jsdom": "^29.1.1",
+    "typescript": "^6.0.3",
+    "vite": "^8.0.16",
+    "vitest": "^4.1.8"
+  }
+}

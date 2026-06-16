@@ -1,0 +1,247 @@
+import { describe, it, expect, assertType, beforeEach } from 'vitest';
+import type { Lesson, ModuleGroup, LessonResult } from './types';
+import LESSONS from './lessons';
+import { runTests, getProgress, saveProgress } from './app';
+
+function renderTheory(text: string): string {
+  const parts = text.split(/(```[\s\S]*?```)/g);
+  return parts.map(part => {
+    if (part.startsWith('```')) {
+      const code = part.replace(/```\w*\n?/, '').replace(/```$/, '');
+      return `<pre><code>${code.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>`;
+    }
+    const withInline = part
+      .replace(/`([^`]+)`/g, '<code>$1</code>')
+      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    return withInline.split('\n\n').filter(Boolean).map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('');
+  }).join('');
+}
+
+describe('renderTheory', () => {
+  it('convierte **negrita** a <strong>', () => {
+    const result = renderTheory('**hola**');
+    expect(result).toContain('<strong>hola</strong>');
+  });
+
+  it('convierte `codigo inline` a <code>', () => {
+    const result = renderTheory('Usa `let` para variables');
+    expect(result).toContain('<code>let</code>');
+  });
+
+  it('convierte bloques ```js a <pre><code>', () => {
+    const result = renderTheory('```js\nlet x = 1;\n```');
+    expect(result).toContain('<pre><code>');
+    expect(result).toContain('let x = 1;');
+  });
+
+  it('envuelve texto plano en <p>', () => {
+    const result = renderTheory('Esto es un párrafo.');
+    assertType<string>(result);
+    expect(result).toMatch(/^<p>/);
+    expect(result).toContain('Esto es un párrafo.');
+  });
+
+  it('escapa HTML especial en bloques de código', () => {
+    const result = renderTheory('```\nif (x < 5 && y > 3) {}\n```');
+    expect(result).toContain('&lt;');
+    expect(result).toContain('&gt;');
+  });
+
+  it('combina múltiples formatos', () => {
+    const result = renderTheory('Usa `const` para **constantes**.\n\n```js\nconst PI = 3.14;\n```');
+    expect(result).toContain('<code>const</code>');
+    expect(result).toContain('<strong>constantes</strong>');
+    expect(result).toContain('<pre><code>');
+  });
+});
+
+describe('runTests', () => {
+  it('retorna passed true si todos los tests pasan', () => {
+    expect(runTests('let x = 1;', ['x === 1']).passed).toBe(true);
+  });
+
+  it('retorna passed false si algun test falla', () => {
+    expect(runTests('let x = 1;', ['x === 2']).passed).toBe(false);
+  });
+
+  it('retorna failedIndex del test que falla', () => {
+    const result = runTests('let x = 1; let y = 2;', ['x === 1', 'y === 3']);
+    expect(result.passed).toBe(false);
+    expect(result.failedIndex).toBe(1);
+  });
+
+  it('retorna passed true con multiples tests correctos', () => {
+    expect(runTests('let x = 1; let y = 2;', ['x === 1', 'y === 2']).passed).toBe(true);
+  });
+
+  it('retorna passed false si el codigo tiene error de sintaxis', () => {
+    expect(runTests('let x = ;', ['true']).passed).toBe(false);
+  });
+
+  it('retorna passed false si los tests hacen referencia a undefined', () => {
+    expect(runTests('let x = 1;', ['z === 1']).passed).toBe(false);
+  });
+
+  it('evalua el codigo del usuario correctamente', () => {
+    expect(runTests('const a = 5; const b = 3; const c = a + b;', ['c === 8']).passed).toBe(true);
+  });
+
+  it('captura console.log del usuario', () => {
+    const result = runTests('console.log("hola");', ['true']);
+    expect(result.logs).toContain('hola');
+  });
+
+  it('restaura console.log despues de ejecutar', () => {
+    const originalLog = console.log;
+    runTests('console.log("test");', ['true']);
+    expect(console.log).toBe(originalLog);
+  });
+
+  it('reporta error de sintaxis en logs', () => {
+    const result = runTests('let x = ;', ['true']);
+    expect(result.logs.some(l => l.includes('sintaxis'))).toBe(true);
+  });
+
+  it('reporta error de referencia en logs', () => {
+    const result = runTests('x.y();', ['true']);
+    expect(result.logs.some(l => l.includes('referencia'))).toBe(true);
+  });
+});
+
+describe('Estructura de lecciones', () => {
+  it('LESSONS es un array', () => {
+    expect(Array.isArray(LESSONS)).toBe(true);
+  });
+
+  it('cada leccion tiene los campos requeridos', () => {
+    LESSONS.forEach((lesson: Lesson) => {
+      expect(lesson).toHaveProperty('id');
+      expect(typeof lesson.id).toBe('number');
+      expect(lesson).toHaveProperty('title');
+      expect(typeof lesson.title).toBe('string');
+      expect(lesson).toHaveProperty('module');
+      expect(typeof lesson.module).toBe('string');
+      expect(lesson).toHaveProperty('theory');
+      expect(typeof lesson.theory).toBe('string');
+      expect(lesson).toHaveProperty('exercise');
+      expect(typeof lesson.exercise).toBe('string');
+      expect(lesson).toHaveProperty('solution');
+      expect(typeof lesson.solution).toBe('string');
+      expect(lesson).toHaveProperty('tests');
+      expect(Array.isArray(lesson.tests)).toBe(true);
+    });
+  });
+
+  it('todos los tests en cada leccion son strings', () => {
+    LESSONS.forEach((lesson: Lesson) => {
+      lesson.tests.forEach((test) => {
+        expect(typeof test).toBe('string');
+      });
+    });
+  });
+
+  it('los IDs de leccion son numeros positivos unicos', () => {
+    const ids = LESSONS.map((l: Lesson) => l.id);
+    const unicos = new Set(ids);
+    expect(unicos.size).toBe(ids.length);
+    ids.forEach(id => {
+      expect(id).toBeGreaterThan(0);
+    });
+  });
+});
+
+describe('Persistencia', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it('getProgress devuelve array vacio si no hay datos', () => {
+    expect(getProgress()).toEqual([]);
+  });
+
+  it('saveProgress y getProgress funcionan en ciclo', () => {
+    saveProgress([1, 2, 3]);
+    expect(getProgress()).toEqual([1, 2, 3]);
+  });
+
+  it('saveProgress con array vacio', () => {
+    saveProgress([]);
+    expect(getProgress()).toEqual([]);
+  });
+
+  it('getProgress tolera datos corruptos', () => {
+    localStorage.setItem('aprendojs_progress', '{corrupto');
+    expect(getProgress()).toEqual([]);
+  });
+
+  it('runTests reporta error de sintaxis con log', () => {
+    const result = runTests('let x = ;', ['true']);
+    expect(result.passed).toBe(false);
+    expect(result.logs.some(l => l.toLowerCase().includes('sintaxis'))).toBe(true);
+  });
+});
+
+describe('Estructura de lecciones (avanzado)', () => {
+  it('los titulos de modulo no estan vacios', () => {
+    LESSONS.forEach(l => {
+      expect(l.module.trim().length).toBeGreaterThan(0);
+    });
+  });
+
+  it('los titulos de leccion no estan vacios', () => {
+    LESSONS.forEach(l => {
+      expect(l.title.trim().length).toBeGreaterThan(0);
+    });
+  });
+
+  it('cada leccion tiene al menos un test', () => {
+    LESSONS.forEach(l => {
+      expect(l.tests.length).toBeGreaterThan(0);
+    });
+  });
+
+  it('los IDs de lecciones son unicos', () => {
+    const ids = LESSONS.map(l => l.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+});
+
+describe('Accesibilidad en lecciones', () => {
+  it('todas las lecciones tienen module como string', () => {
+    LESSONS.forEach(l => {
+      expect(typeof l.module).toBe('string');
+    });
+  });
+
+  it('ninguna leccion tiene campos undefined', () => {
+    LESSONS.forEach(l => {
+      expect(l.id).toBeDefined();
+      expect(l.title).toBeDefined();
+      expect(l.module).toBeDefined();
+      expect(l.theory).toBeDefined();
+      expect(l.exercise).toBeDefined();
+      expect(l.solution).toBeDefined();
+      expect(l.tests).toBeDefined();
+    });
+  });
+});
+
+describe('Tipos avanzados', () => {
+  it('ModuleGroup es un Record<string, Lesson[]>', () => {
+    const group: ModuleGroup = { 'Fundamentos': [LESSONS[0]] };
+    expect(group['Fundamentos']).toBeDefined();
+    assertType<Lesson[]>(group['Fundamentos']);
+  });
+
+  it('LessonResult es una union discriminada', () => {
+    const idle: LessonResult = { status: 'idle' };
+    const success: LessonResult = { status: 'success', message: 'ok' };
+    const error: LessonResult = { status: 'error', message: 'fail' };
+    const info: LessonResult = { status: 'info', message: 'info msg' };
+
+    expect(idle.status).toBe('idle');
+    expect(success.status).toBe('success');
+    expect(error.status).toBe('error');
+    expect(info.status).toBe('info');
+  });
+});

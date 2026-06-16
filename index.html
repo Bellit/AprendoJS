@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AprendoJS - Aprende JavaScript con lecciones interactivas</title>
+  <meta name="description" content="Plataforma interactiva gratuita para aprender JavaScript. Lecciones prácticas con editor de código, ejercicios y validación automática.">
+  <meta name="robots" content="index, follow">
+  <meta name="theme-color" content="#6c5ce7">
+  <link rel="canonical" href="https://aprendojs.app/">
+
+  <meta property="og:title" content="AprendoJS - Aprende JavaScript interactivamente">
+  <meta property="og:description" content="Lecciones prácticas con editor de código y validación automática.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://aprendojs.app/">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/codemirror.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/addon/hint/show-hint.min.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Saltar al contenido principal</a>
+
+  <header class="header" role="banner">
+    <button id="menu-toggle" class="menu-toggle" aria-label="Abrir menú de lecciones" aria-expanded="false" aria-controls="sidebar">
+      <span class="hamburger"></span>
+    </button>
+    <h1>AprendoJS</h1>
+    <p>Practica JavaScript con lecciones interactivas</p>
+    <button id="theme-toggle" class="theme-toggle" aria-label="Cambiar tema oscuro/claro">🌙</button>
+  </header>
+
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+  <main class="container" id="main-content" role="main">
+    <aside id="sidebar" class="sidebar" role="complementary" aria-label="Lista de lecciones">
+      <h2>Lecciones</h2>
+      <div role="search" aria-label="Buscar lecciones">
+        <input type="search" id="search-input" class="search-input" placeholder="Buscar lecciones..." aria-label="Buscar lecciones">
+      </div>
+      <nav aria-label="Navegación de lecciones">
+        <ul id="lesson-list" class="lesson-list" role="tree"></ul>
+      </nav>
+      <button id="reset-progress-btn" class="btn btn-reset-progress" aria-label="Reiniciar progreso">Reiniciar progreso</button>
+    </aside>
+
+    <section class="content" role="region" aria-label="Área de estudio">
+      <div id="theory-area" class="theory-area" role="article">
+        <h2>Bienvenido</h2>
+        <p>Selecciona una lección del panel izquierdo para empezar a practicar.</p>
+      </div>
+
+      <div id="exercise-area" class="exercise-area hidden" role="form" aria-label="Editor de ejercicios">
+        <h3 id="exercise-title"></h3>
+        <p id="exercise-desc"></p>
+
+        <div class="editor-wrapper" role="presentation">
+          <label for="editor" class="visually-hidden">Editor de código JavaScript</label>
+          <div id="editor-loading" class="editor-loading" aria-label="Cargando editor">Cargando editor...</div>
+          <textarea id="editor" aria-label="Escribe tu código JavaScript aquí"></textarea>
+        </div>
+
+        <div class="actions">
+          <button id="run-btn" class="btn btn-run" aria-label="Ejecutar código">Ejecutar <kbd>Ctrl+Enter</kbd></button>
+          <button id="reset-btn" class="btn btn-reset" aria-label="Reiniciar ejercicio">Reiniciar</button>
+          <button id="solution-btn" class="btn btn-solution" aria-label="Ver solución">Ver solución</button>
+        </div>
+
+        <div id="result-area" class="result-area hidden" role="status" aria-live="polite" aria-atomic="true">
+          <p id="result-msg"></p>
+          <pre id="result-output"></pre>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "AprendoJS",
+    "url": "https://aprendojs.app/",
+    "description": "Plataforma interactiva gratuita para aprender JavaScript con lecciones prácticas y editor de código integrado.",
+    "applicationCategory": "EducationalApplication",
+    "operatingSystem": "All",
+    "browserRequirements": "Requires JavaScript",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "author": {
+      "@type": "Organization",
+      "name": "AprendoJS"
+    }
+  }
+  </script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/mode/javascript/javascript.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/addon/hint/show-hint.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/addon/hint/javascript-hint.min.js"></script>
+  <script>
+    if ('serviceWorker' in navigator && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js');
+      });
+    }
+  </script>
+  <script type="module" src="/js/app.ts"></script>
+</body>
+</html>
