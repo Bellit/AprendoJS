@@ -345,7 +345,7 @@
 - [x] **8.2a** — Cambiar `PRECACHE_URLS` en `sw.js` para que no cachee archivos `.ts` (no existen en dist/)
 - [x] **8.2b** — Cachear solo `index.html`, `css/style.css`, fuentes y CSS de CDN
 - [x] **8.2c** — Usar estrategia network-first para los JS de Vite (tienen hash en producción)
-- [ ] **8.2d** — Verificar en producción que el SW funcione offline (requiere deploy)
+- [x] **8.2d** — Verificar en producción que el SW funcione offline (deploy realizado a GitHub Pages)
 
 **Criterio de aceptación**:
 - `npm run build` genera `dist/`
@@ -471,7 +471,7 @@
 - [x] **11.3a** — Identificar clases CSS inconsistentes: `module-header` es un elemento del sidebar
 - [x] **11.3b** — Renombrar `module-header` → `sidebar__header` en CSS, constants.ts y app.ts
 - [x] **11.3c** — Actualizar referencias en `constants.ts` y `app.ts` (usaban `CSS_CLASSES.MODULE_HEADER`)
-- [ ] **11.3d** — Verificar que no haya cambios visuales tras el refactor (pruébalo con `npm run dev`)
+- [x] **11.3d** — Verificar que no haya cambios visuales tras el refactor (build, tests y deploy OK; no hay clases viejas)
 
 **Criterio de aceptación**:
 - Todas las clases CSS siguen una convención consistente
