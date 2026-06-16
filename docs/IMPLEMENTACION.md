@@ -321,6 +321,164 @@
 
 ---
 
+## Lote 8 — Refactor de Arquitectura (alta prioridad)
+
+### 8.1 Dividir `app.ts` en módulos
+
+- [x] **8.1a** — Extraer funciones de manipulación DOM a `js/dom.ts`: `getEl`, `showResult`
+- [x] **8.1b** — Extraer lógica de localStorage a `js/storage.ts`: `getProgress`, `saveProgress`, `getSavedCode`, `saveCode`, `removeSavedCode`
+- [x] **8.1c** — Extraer lógica de CodeMirror a `js/editor.ts`: `initEditor`, y eventos del editor
+- [x] **8.1d** — Extraer gestión de tema a `js/theme.ts`: `setTheme`, `loadTheme`
+- [x] **8.1e** — Extraer `renderTheory` a `js/renderer.ts` (markdown → HTML)
+- [x] **8.1f** — Refactorizar `app.ts` para que importe y use los nuevos módulos, manteniendo misma funcionalidad
+
+**Criterio de aceptación**:
+- `npm test` pasa (todos los tests existentes, incluyendo los que importan `runTests` y `getProgress`/`saveProgress`)
+- `npm run build` compila sin errores
+- La app en `npm run dev` funciona exactamente igual que antes
+- Cada módulo tiene una responsabilidad única
+
+---
+
+### 8.2 Arreglar Service Worker para producción
+
+- [x] **8.2a** — Cambiar `PRECACHE_URLS` en `sw.js` para que no cachee archivos `.ts` (no existen en dist/)
+- [x] **8.2b** — Cachear solo `index.html`, `css/style.css`, fuentes y CSS de CDN
+- [x] **8.2c** — Usar estrategia network-first para los JS de Vite (tienen hash en producción)
+- [ ] **8.2d** — Verificar en producción que el SW funcione offline (requiere deploy)
+
+**Criterio de aceptación**:
+- `npm run build` genera `dist/`
+- Con DevTools > Network > Offline, la app carga y muestra contenido
+- No hay errores 404 en la consola del SW por .ts inexistentes
+
+---
+
+### 8.3 Centralizar selectores DOM
+
+- [x] **8.3a** — Crear `js/constants.ts` con objeto de IDs del DOM y clases CSS
+- [x] **8.3b** — Reemplazar llamadas a `getEl` por referencias centralizadas desde `constants.ts`
+- [x] **8.3c** — Cachear resultados de `querySelectorAll` en función `getLessonItems()` en `dom.ts`
+
+**Criterio de aceptación**:
+- No hay IDs hardcodeados repetidos en la lógica
+- `npm test` pasa
+
+---
+
+## Lote 9 — Testing y Calidad (media prioridad)
+
+### 9.1 Exportar `renderTheory` y eliminar duplicación
+
+- [x] **9.1a** — Exportar `renderTheory` desde `js/renderer.ts`
+- [x] **9.1b** — Importar `renderTheory` en `app.test.ts` en lugar de tener una copia duplicada
+- [x] **9.1c** — Verificar que los 6 tests de `renderTheory` sigan pasando (34 tests en total)
+
+**Criterio de aceptación**:
+- `app.test.ts` importa `renderTheory` de un solo lugar
+- `npm test` pasa
+
+---
+
+### 9.2 Tests de renderizado DOM
+
+- [x] **9.2a** — Test: `renderTheory` con listas produce `<ul><li>` correcto
+- [x] **9.2b** — Test: `renderTheory` combina párrafos y listas en orden correcto
+- [x] **9.2c** — Test: `renderTheory` con enlaces produce `<a>` con href y texto
+- [ ] **9.2d** — Test: `showResult()` con `LessonResult.status='error'` muestra mensaje de error (requiere DOM real con jsdom)
+
+**Criterio de aceptación**:
+- Tests de renderTheory verifican HTML generado
+- `npm test` pasa
+
+---
+
+### 9.3 Tests de persistencia (completar cobertura)
+
+- [x] **9.3a** — Test: `getProgress` filtra IDs no numéricos (strings, null, negativos)
+- [x] **9.3b** — Test: `saveCode` y `getSavedCode` funcionan en ciclo
+- [x] **9.3c** — Test: `removeSavedCode` elimina el código guardado correctamente
+
+**Criterio de aceptación**:
+- Tests con localStorage mockeado
+- `npm test` pasa
+
+---
+
+## Lote 10 — Seguridad y Sandbox (media prioridad)
+
+### 10.1 Web Worker para sandbox de ejecución
+
+- [ ] **10.1a** — Crear `js/sandbox.worker.ts` (o `worker.js`) que reciba código del alumno + tests y ejecute en un Worker
+- [ ] **10.1b** — Implementar comunicación Worker ↔ app.ts con `postMessage`/`onmessage`
+- [ ] **10.1c** — Añadir timeout de 3s que termine el Worker si no responde (sí detiene bucles infinitos)
+- [ ] **10.1d** — Reemplazar `new Function()` por el Worker en `runTests()`
+- [ ] **10.1e** — Capturar `console.log` del alumno dentro del Worker y enviarlo al hilo principal
+
+**Criterio de aceptación**:
+- Código con `while(true){}` no cuelga la página (el Worker se termina por timeout)
+- `console.log` dentro del Worker se muestra en el área de resultados
+- `npm test` pasa (los tests existentes de `runTests` pueden necesitar adaptación)
+- `npm run build` compila
+
+---
+
+### 10.2 Validación de datos en localStorage
+
+- [x] **10.2a** — Mejorar `getProgress()` para validar que los IDs sean números enteros positivos
+- [x] **10.2b** — Mejorar `getSavedCode()` para limitar tamaño máximo del código guardado (ej: 10KB)
+- [x] **10.2c** — Añadir test de tolerancia a datos corruptos (IDs negativos, NaN, strings en el array)
+
+**Criterio de aceptación**:
+- Datos corruptos no rompen la app
+- `npm test` pasa
+
+---
+
+## Lote 11 — Contenido y UX (media/baja prioridad)
+
+### 11.1 Mejorar parser de markdown
+
+- [x] **11.1a** — Añadir soporte para listas no ordenadas (`- item`) en `renderTheory`
+- [x] **11.1b** — Añadir soporte para enlaces (`[texto](url)`)
+- [x] **11.1c** — Escapar HTML en párrafos (no solo en code blocks)
+- [x] **11.1d** — Refactorizar parser para manejar bloques mixtos (párrafos + listas + código)
+
+**Criterio de aceptación**:
+- `renderTheory('- item')` genera `<ul><li>item</li></ul>`
+- `renderTheory('[link](url)')` genera `<a href="url">link</a>`
+- `npm test` pasa
+
+---
+
+### 11.2 Sistema extendido de tests del alumno
+
+- [ ] **11.2a** — Añadir tipo `Test` en `types.ts`: `{ type: 'expression' | 'function', code: string, expected?: unknown }`
+- [ ] **11.2b** — Modificar `runTests()` para soportar ambos tipos de test
+- [ ] **11.2c** — Migrar algunas lecciones existentes al nuevo formato (3-5 lecciones de ejemplo)
+- [ ] **11.2d** — Añadir tests de Vitest para el nuevo sistema de tests
+
+**Criterio de aceptación**:
+- Tests de tipo `function` ejecutan una función del alumno y comparan resultado con `expected`
+- Las lecciones migradas siguen funcionando
+- `npm test` pasa
+
+---
+
+### 11.3 Refactor CSS con BEM
+
+- [ ] **11.3a** — Identificar clases CSS inconsistentes (mezcla de estilos de naming)
+- [ ] **11.3b** — Renombrar clases siguiendo convención BEM (ej: `module-header` → `sidebar__header`)
+- [ ] **11.3c** — Actualizar `app.ts` y `index.html` con los nuevos nombres de clase
+- [ ] **11.3d** — Verificar que no haya cambios visuales tras el refactor
+
+**Criterio de aceptación**:
+- Todas las clases CSS siguen una convención consistente
+- `npm run dev` muestra el mismo diseño que antes
+- `npm test` pasa
+
+---
+
 # Flujo de Trabajo para Agentes
 
 ## Agente Implementador

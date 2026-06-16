@@ -1,21 +1,9 @@
 import { describe, it, expect, assertType, beforeEach } from 'vitest';
 import type { Lesson, ModuleGroup, LessonResult } from './types';
 import LESSONS from './lessons';
-import { runTests, getProgress, saveProgress } from './app';
-
-function renderTheory(text: string): string {
-  const parts = text.split(/(```[\s\S]*?```)/g);
-  return parts.map(part => {
-    if (part.startsWith('```')) {
-      const code = part.replace(/```\w*\n?/, '').replace(/```$/, '');
-      return `<pre><code>${code.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>`;
-    }
-    const withInline = part
-      .replace(/`([^`]+)`/g, '<code>$1</code>')
-      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-    return withInline.split('\n\n').filter(Boolean).map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('');
-  }).join('');
-}
+import { runTests } from './app';
+import { getProgress, saveProgress, getSavedCode, saveCode, removeSavedCode } from './storage';
+import { renderTheory } from './renderer';
 
 describe('renderTheory', () => {
   it('convierte **negrita** a <strong>', () => {
@@ -52,6 +40,25 @@ describe('renderTheory', () => {
     expect(result).toContain('<code>const</code>');
     expect(result).toContain('<strong>constantes</strong>');
     expect(result).toContain('<pre><code>');
+  });
+
+  it('convierte listas con - a <ul><li>', () => {
+    const result = renderTheory('- item 1\n- item 2\n- item 3');
+    expect(result).toContain('<ul>');
+    expect(result).toContain('<li>item 1</li>');
+    expect(result).toContain('<li>item 3</li>');
+  });
+
+  it('convierte enlaces [texto](url) a <a>', () => {
+    const result = renderTheory('Visita [MDN](https://developer.mozilla.org)');
+    expect(result).toContain('<a href="https://developer.mozilla.org"');
+    expect(result).toContain('>MDN</a>');
+  });
+
+  it('escapa HTML en parrafos', () => {
+    const result = renderTheory('x < 5 && y > 3');
+    expect(result).toContain('&lt;');
+    expect(result).toContain('&gt;');
   });
 });
 
@@ -174,6 +181,22 @@ describe('Persistencia', () => {
     expect(getProgress()).toEqual([]);
   });
 
+  it('getProgress filtra IDs no numericos', () => {
+    localStorage.setItem('aprendojs_progress', JSON.stringify([1, 'a', null, -5, 2]));
+    expect(getProgress()).toEqual([1, 2]);
+  });
+
+  it('saveCode y getSavedCode funcionan en ciclo', () => {
+    saveCode(1, 'let x = 1;');
+    expect(getSavedCode(1)).toBe('let x = 1;');
+  });
+
+  it('removeSavedCode elimina el codigo guardado', () => {
+    saveCode(2, 'let y = 2;');
+    removeSavedCode(2);
+    expect(getSavedCode(2)).toBe('');
+  });
+
   it('runTests reporta error de sintaxis con log', () => {
     const result = runTests('let x = ;', ['true']);
     expect(result.passed).toBe(false);
@@ -243,5 +266,27 @@ describe('Tipos avanzados', () => {
     expect(success.status).toBe('success');
     expect(error.status).toBe('error');
     expect(info.status).toBe('info');
+  });
+});
+
+describe('DOM rendering', () => {
+  it('renderTheory produce HTML valido con listas', () => {
+    const html = renderTheory('- a\n- b\n- c');
+    expect(html).toMatch(/^<ul>/);
+    expect(html).toMatch(/<\/ul>$/);
+    expect(html.match(/<li>/g)?.length).toBe(3);
+  });
+
+  it('renderTheory combina parrafos y listas', () => {
+    const html = renderTheory('Texto antes.\n\n- item 1\n- item 2\n\nTexto después.');
+    expect(html).toContain('<p>');
+    expect(html).toContain('<ul>');
+    expect(html.indexOf('<p>')).toBeLessThan(html.indexOf('<ul>'));
+  });
+
+  it('renderTheory maneja enlaces dentro de parrafos', () => {
+    const html = renderTheory('Lee [esto](https://example.com) ahora.');
+    expect(html).toContain('<a href="https://example.com"');
+    expect(html).toContain('>esto</a>');
   });
 });
