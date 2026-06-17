@@ -16,11 +16,15 @@ declare namespace CodeMirror {
     getValue(): string;
     setValue(value: string): void;
     focus(): void;
+    refresh(): void;
+    lineCount(): number;
     getOption(option: string): unknown;
     setOption(option: string, value: unknown): void;
     on(event: string, callback: (...args: unknown[]) => void): void;
     off(event: string, callback: (...args: unknown[]) => void): void;
     showHint(options?: { completeSingle?: boolean }): void;
+    addLineClass(line: number, where: string, cls: string): void;
+    removeLineClass(line: number, where: string, cls: string): void;
   }
 
   interface EditorChange {

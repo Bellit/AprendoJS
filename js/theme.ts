@@ -1,3 +1,5 @@
+import { syncEditorTheme } from './editor';
+
 const THEME_KEY = 'aprendojs_theme';
 
 export function setTheme(theme: 'dark' | 'light'): void {
@@ -7,6 +9,7 @@ export function setTheme(theme: 'dark' | 'light'): void {
   if (toggle) {
     toggle.textContent = theme === 'dark' ? '☀️' : '🌙';
   }
+  syncEditorTheme();
 }
 
 export function loadTheme(): void {

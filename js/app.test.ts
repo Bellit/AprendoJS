@@ -1,10 +1,11 @@
 import { describe, it, expect, assertType, beforeEach } from 'vitest';
 import type { Lesson, ModuleGroup, LessonResult, Test, TestExpression } from './types';
 import LESSONS from './lessons';
-import { runTests } from './app';
+import { runTests, getTestExpression, getTestDisplay, selectLesson } from './app';
 import { getProgress, saveProgress, getSavedCode, saveCode, removeSavedCode } from './storage';
 import { renderTheory } from './renderer';
 import { showResult } from './dom';
+import { parseError } from './errors';
 
 describe('renderTheory', () => {
   it('convierte **negrita** a <strong>', () => {
@@ -293,11 +294,13 @@ describe('Tipos avanzados', () => {
     const success: LessonResult = { status: 'success', message: 'ok' };
     const error: LessonResult = { status: 'error', message: 'fail' };
     const info: LessonResult = { status: 'info', message: 'info msg' };
+    const loading: LessonResult = { status: 'loading', message: 'loading...' };
 
     expect(idle.status).toBe('idle');
     expect(success.status).toBe('success');
     expect(error.status).toBe('error');
     expect(info.status).toBe('info');
+    expect(loading.status).toBe('loading');
   });
 });
 
@@ -365,5 +368,86 @@ describe('DOM rendering', () => {
     const html = renderTheory('Lee [esto](https://example.com) ahora.');
     expect(html).toContain('<a href="https://example.com"');
     expect(html).toContain('>esto</a>');
+  });
+});
+
+describe('getTestExpression', () => {
+  it('retorna el string directamente para tests tipo string', () => {
+    expect(getTestExpression('x === 1')).toBe('x === 1');
+  });
+
+  it('retorna el code para TestExpression tipo expression', () => {
+    expect(getTestExpression({ type: 'expression', code: 'typeof x !== "undefined"' })).toBe('typeof x !== "undefined"');
+  });
+
+  it('envuelve en parentesis para funcion con expected', () => {
+    expect(getTestExpression({ type: 'function', code: 'sumar(2,3)', expected: 5 })).toBe('(sumar(2,3)) === 5');
+  });
+
+  it('retorna code si funcion no tiene expected', () => {
+    expect(getTestExpression({ type: 'function', code: 'typeof sumar === "function"' })).toBe('typeof sumar === "function"');
+  });
+});
+
+describe('getTestDisplay', () => {
+  it('retorna el string directamente para tests tipo string', () => {
+    expect(getTestDisplay('x === 1')).toBe('x === 1');
+  });
+
+  it('retorna el code para TestExpression', () => {
+    expect(getTestDisplay({ type: 'function', code: 'sumar(2,3)', expected: 5 })).toBe('sumar(2,3)');
+  });
+});
+
+describe('Routing hash-based', () => {
+  it('selectLesson actualiza el hash', () => {
+    selectLesson(1);
+    expect(window.location.hash).toBe('#/leccion/1');
+  });
+
+  it('selectLesson actualiza el hash con otro id', () => {
+    selectLesson(5);
+    expect(window.location.hash).toBe('#/leccion/5');
+  });
+});
+
+describe('parseError', () => {
+  it('parsea SyntaxError correctamente', () => {
+    const result = parseError(new SyntaxError('Unexpected token'));
+    expect(result.message).toContain('sintaxis');
+  });
+
+  it('parsea ReferenceError correctamente', () => {
+    const result = parseError(new ReferenceError('x is not defined'));
+    expect(result.message).toContain('referencia');
+  });
+
+  it('parsea TypeError correctamente', () => {
+    const result = parseError(new TypeError('not a function'));
+    expect(result.message).toContain('tipo');
+  });
+
+  it('parsea RangeError correctamente', () => {
+    const result = parseError(new RangeError('invalid array length'));
+    expect(result.message).toContain('rango');
+  });
+
+  it('cubre error generico sin tipo', () => {
+    const result = parseError(new Error('algo falló'));
+    expect(result.message).toContain('ejecución');
+  });
+
+  it('no incluye numero de línea sin stack', () => {
+    const err = { message: 'simple', name: 'Error' } as Error;
+    const result = parseError(err);
+    expect(result.line).toBeUndefined();
+  });
+
+  it('extrae numero de línea del stack', () => {
+    const err = new Error('test');
+    err.stack = 'Error: test\n    at file.js:5:10';
+    const result = parseError(err);
+    expect(result.line).toBe(4);
+    expect(result.message).toContain('línea 4');
   });
 });

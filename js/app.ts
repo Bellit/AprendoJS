@@ -1,10 +1,11 @@
-import type { Lesson, ModuleGroup, Test, TestExpression } from './types';
+import type { Lesson, ModuleGroup, Test, TestExpression, WorkerResult } from './types';
 import LESSONS from './lessons';
 import { getEl, showResult, getLessonItems } from './dom';
 import { renderTheory } from './renderer';
+import { parseError } from './errors';
 import { getProgress, saveProgress, getSavedCode, saveCode, removeSavedCode } from './storage';
 import { setTheme, loadTheme } from './theme';
-import { initEditor } from './editor';
+import { initEditor, clearErrorHighlights, highlightErrorLine } from './editor';
 import { DOM_IDS, CSS_CLASSES } from './constants';
 
 let lessons: Lesson[] = [];
@@ -18,10 +19,26 @@ const exerciseTitle = getEl<HTMLHeadingElement>(DOM_IDS.EXERCISE_TITLE);
 const exerciseDesc = getEl<HTMLParagraphElement>(DOM_IDS.EXERCISE_DESC);
 const resultOutput = getEl<HTMLPreElement>(DOM_IDS.RESULT_OUTPUT);
 
+function updateProgressBar(): void {
+  const fill = getEl<HTMLDivElement>(DOM_IDS.PROGRESS_FILL);
+  const text = getEl<HTMLSpanElement>(DOM_IDS.PROGRESS_TEXT);
+  const bar = getEl<HTMLDivElement>(DOM_IDS.PROGRESS_BAR);
+  if (!fill || !text || !bar) return;
+
+  const total = lessons.length;
+  const done = completedIds.size;
+  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+
+  (fill as HTMLElement).style.setProperty('width', pct + '%');
+  text.textContent = `${done} / ${total} lecciones`;
+  bar.setAttribute('aria-valuenow', String(pct));
+}
+
 function addCompleted(id: number): void {
   completedIds.add(id);
   saveProgress(Array.from(completedIds));
   updateLessonStatus(id);
+  updateProgressBar();
 }
 
 const lessonListEl = getEl<HTMLUListElement>(DOM_IDS.LESSON_LIST);
@@ -29,6 +46,8 @@ if (lessonListEl) {
   lessons = LESSONS;
   completedIds = new Set(getProgress());
   renderLessonList();
+  updateProgressBar();
+  handleHashChange();
 }
 
 function renderLessonList(): void {
@@ -46,7 +65,9 @@ function renderLessonList(): void {
   Object.entries(groups).forEach(([module, modLessons]) => {
     const header = document.createElement('li');
     header.className = CSS_CLASSES.MODULE_HEADER;
-    header.textContent = module;
+    const total = modLessons.length;
+    const done = modLessons.filter(l => completedIds.has(l.id)).length;
+    header.textContent = `${module} (${done}/${total})`;
     header.setAttribute('role', 'treeitem');
     header.setAttribute('aria-level', '1');
     lessonListEl.appendChild(header);
@@ -79,9 +100,46 @@ function updateLessonStatus(id: number): void {
       li.classList.add(CSS_CLASSES.COMPLETED);
     }
   });
+  refreshModuleHeaders();
 }
 
-function selectLesson(id: number): void {
+function refreshModuleHeaders(): void {
+  if (!lessonListEl) return;
+  const groups: ModuleGroup = {};
+  lessons.forEach(l => {
+    const mod = l.module || 'General';
+    if (!groups[mod]) groups[mod] = [];
+    groups[mod].push(l);
+  });
+  lessonListEl.querySelectorAll('.' + CSS_CLASSES.MODULE_HEADER).forEach(header => {
+    const modName = header.textContent?.replace(/\s*\(\d+\/\d+\)\s*$/, '') || '';
+    const modLessons = groups[modName];
+    if (modLessons) {
+      const total = modLessons.length;
+      const done = modLessons.filter(l => completedIds.has(l.id)).length;
+      header.textContent = `${modName} (${done}/${total})`;
+    }
+  });
+}
+
+function handleHashChange(): void {
+  const match = window.location.hash.match(/^#\/leccion\/(\d+)$/);
+  if (match) {
+    const id = parseInt(match[1], 10);
+    if (lessons.some(l => l.id === id)) {
+      selectLesson(id);
+      return;
+    }
+  }
+  if (lessons.length > 0 && !currentLesson) {
+    selectLesson(lessons[0].id);
+  }
+}
+
+window.addEventListener('hashchange', handleHashChange);
+
+export function selectLesson(id: number): void {
+  location.hash = '#/leccion/' + id;
   const lesson = lessons.find(l => l.id === id);
   if (!lesson) return;
 
@@ -115,10 +173,22 @@ function selectLesson(id: number): void {
 
   requestAnimationFrame(() => {
     document.querySelector(CSS_CLASSES.CONTENT)?.scrollTo(0, 0);
+    if (exerciseTitle) {
+      exerciseTitle.setAttribute('tabindex', '-1');
+      exerciseTitle.focus();
+    }
   });
 }
 
 let saveTimer: number | null = null;
+
+function showSaveIndicator(): void {
+  const indicator = getEl<HTMLSpanElement>(DOM_IDS.SAVE_INDICATOR);
+  if (!indicator) return;
+  indicator.textContent = 'Guardado ✓';
+  indicator.classList.remove(CSS_CLASSES.HIDDEN);
+  setTimeout(() => indicator.classList.add(CSS_CLASSES.HIDDEN), 1500);
+}
 
 function setupEditor(): void {
   editor = initEditor(DOM_IDS.EDITOR, (cm) => {
@@ -126,6 +196,7 @@ function setupEditor(): void {
     if (saveTimer) clearTimeout(saveTimer);
     saveTimer = window.setTimeout(() => {
       saveCode(currentLesson!.id, cm.getValue());
+      showSaveIndicator();
     }, 500);
   }, runCode);
 }
@@ -145,7 +216,8 @@ async function runCode(): Promise<void> {
     return;
   }
 
-  showResult({ status: 'info', message: 'Ejecutando...' }, selectLesson);
+  showResult({ status: 'loading', message: 'Ejecutando...' }, selectLesson);
+  clearErrorHighlights();
 
   const result = await runTestsInWorker(userCode, currentLesson.tests);
   if (result.passed) {
@@ -161,13 +233,16 @@ async function runCode(): Promise<void> {
       ? `Test ${idx + 1} falló: \`${getTestDisplay(currentLesson.tests[idx])}\``
       : 'Algo no está bien. Revisa tu código e inténtalo de nuevo.';
     showResult({ status: 'error', message: msg }, selectLesson);
+    if (result.errorLine !== undefined) {
+      highlightErrorLine(result.errorLine);
+    }
   }
   if (resultOutput) {
     resultOutput.textContent = result.logs.length > 0 ? result.logs.join('\n') : '';
   }
 }
 
-function getTestExpression(test: Test): string {
+export function getTestExpression(test: Test): string {
   if (typeof test === 'string') return test;
   if (test.type === 'function' && test.expected !== undefined) {
     return `(${test.code}) === ${JSON.stringify(test.expected)}`;
@@ -175,12 +250,12 @@ function getTestExpression(test: Test): string {
   return test.code;
 }
 
-function getTestDisplay(test: Test): string {
+export function getTestDisplay(test: Test): string {
   if (typeof test === 'string') return test;
   return test.code;
 }
 
-export function runTests(userCode: string, tests: Test[]): { passed: boolean; failedIndex: number | null; logs: string[] } {
+export function runTests(userCode: string, tests: Test[]): WorkerResult {
   const logs: string[] = [];
   const originalLog = console.log;
   console.log = (...args: unknown[]) => {
@@ -208,33 +283,15 @@ export function runTests(userCode: string, tests: Test[]): { passed: boolean; fa
 
     return { passed: failedIndex === -1, failedIndex: failedIndex === -1 ? null : failedIndex, logs };
   } catch (err) {
-    let msg = 'Error de ejecución';
-    if (err instanceof SyntaxError) msg = 'Error de sintaxis';
-    else if (err instanceof ReferenceError) msg = 'Error de referencia: variable no definida';
-    else if (err instanceof TypeError) msg = 'Error de tipo';
-    else if (err instanceof RangeError) msg = 'Error de rango';
-
-    if (err instanceof Error && err.stack) {
-      const lines = err.stack.split('\n');
-      for (const line of lines) {
-        const match = line.match(/:(\d+):\d+/);
-        if (match) {
-          const lineNum = parseInt(match[1], 10) - 1;
-          if (lineNum > 0) {
-            msg += ` en línea ${lineNum}`;
-          }
-          break;
-        }
-      }
-    }
-    logs.push(msg);
-    return { passed: false, failedIndex: null, logs };
+    const parsed = parseError(err);
+    logs.push(parsed.message);
+    return { passed: false, failedIndex: null, logs, errorLine: parsed.line };
   } finally {
     console.log = originalLog;
   }
 }
 
-function runTestsInWorker(userCode: string, tests: Test[]): Promise<{ passed: boolean; failedIndex: number | null; logs: string[] }> {
+function runTestsInWorker(userCode: string, tests: Test[]): Promise<WorkerResult> {
   return new Promise((resolve) => {
     try {
       const worker = new Worker(new URL('./sandbox.worker.ts', import.meta.url), { type: 'module' });
@@ -300,8 +357,39 @@ if (resetProgressBtn) {
     completedIds = new Set();
     getLessonItems().forEach(li => li.classList.remove(CSS_CLASSES.COMPLETED));
     showResult({ status: 'idle' });
+    updateProgressBar();
   });
 }
+
+const shortcutsBtn = getEl<HTMLButtonElement>(DOM_IDS.SHORTCUTS_BTN);
+const shortcutsModal = getEl<HTMLDivElement>(DOM_IDS.SHORTCUTS_MODAL);
+const shortcutsCloseBtn = getEl<HTMLButtonElement>(DOM_IDS.SHORTCUTS_CLOSE_BTN);
+
+function toggleShortcutsModal(open?: boolean): void {
+  if (!shortcutsModal) return;
+  const isOpen = open ?? !shortcutsModal.classList.contains(CSS_CLASSES.OPEN);
+  shortcutsModal.classList.toggle(CSS_CLASSES.OPEN, isOpen);
+}
+
+if (shortcutsBtn) {
+  shortcutsBtn.addEventListener('click', () => toggleShortcutsModal(true));
+}
+if (shortcutsCloseBtn) {
+  shortcutsCloseBtn.addEventListener('click', () => toggleShortcutsModal(false));
+}
+if (shortcutsModal) {
+  shortcutsModal.addEventListener('click', (e) => {
+    if (e.target === shortcutsModal) toggleShortcutsModal(false);
+  });
+}
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && shortcutsModal?.classList.contains(CSS_CLASSES.OPEN)) {
+    toggleShortcutsModal(false);
+  }
+  if (e.key === '?' && !(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)) {
+    toggleShortcutsModal(true);
+  }
+});
 
 const themeToggle = getEl<HTMLButtonElement>(DOM_IDS.THEME_TOGGLE);
 if (themeToggle) {
@@ -355,7 +443,7 @@ function toggleSidebar(open?: boolean): void {
   menuToggle.setAttribute('aria-expanded', String(isOpen));
   menuToggle.setAttribute('aria-label', isOpen ? 'Cerrar menú de lecciones' : 'Abrir menú de lecciones');
   if (sidebarOverlay) {
-    sidebarOverlay.classList.toggle('active', isOpen);
+    sidebarOverlay.classList.toggle(CSS_CLASSES.SIDEBAR_OVERLAY_ACTIVE, isOpen);
   }
 }
 

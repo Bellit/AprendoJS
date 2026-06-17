@@ -40,6 +40,10 @@
       <div role="search" aria-label="Buscar lecciones">
         <input type="search" id="search-input" class="search-input" placeholder="Buscar lecciones..." aria-label="Buscar lecciones">
       </div>
+      <div id="progress-bar" class="progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Progreso del curso">
+        <div id="progress-fill" class="progress-fill"></div>
+        <span id="progress-text" class="progress-text">0 / 81 lecciones</span>
+      </div>
       <nav aria-label="Navegación de lecciones">
         <ul id="lesson-list" class="lesson-list" role="tree"></ul>
       </nav>
@@ -60,14 +64,27 @@
           <label for="editor" class="visually-hidden">Editor de código JavaScript</label>
           <div id="editor-loading" class="editor-loading" aria-label="Cargando editor">Cargando editor...</div>
           <textarea id="editor" aria-label="Escribe tu código JavaScript aquí"></textarea>
+          <span id="save-indicator" class="save-indicator hidden" aria-live="polite"></span>
         </div>
 
         <div class="actions">
-          <button id="run-btn" class="btn btn-run" aria-label="Ejecutar código">Ejecutar <kbd>Ctrl+Enter</kbd></button>
+          <button id="run-btn" class="btn btn-run" aria-label="Ejecutar código" title="Ejecutar código (Ctrl+Enter)" aria-keyshortcuts="Ctrl+Enter">Ejecutar <kbd>Ctrl+Enter</kbd></button>
           <button id="reset-btn" class="btn btn-reset" aria-label="Reiniciar ejercicio">Reiniciar</button>
           <button id="solution-btn" class="btn btn-solution" aria-label="Ver solución">Ver solución</button>
+          <button id="shortcuts-btn" class="btn btn-shortcuts" aria-label="Atajos de teclado" title="Atajos de teclado">⌨</button>
         </div>
 
+        <div id="shortcuts-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="shortcuts-title">
+          <div class="modal-content">
+            <h2 id="shortcuts-title">Atajos de teclado</h2>
+            <dl class="shortcuts-list">
+              <dt><kbd>Ctrl+Enter</kbd></dt><dd>Ejecutar código</dd>
+              <dt><kbd>Ctrl+Space</kbd></dt><dd>Autocompletar</dd>
+              <dt><kbd>?</kbd></dt><dd>Abrir esta ayuda</dd>
+            </dl>
+            <button id="shortcuts-close-btn" class="btn" aria-label="Cerrar atajos">Cerrar</button>
+          </div>
+        </div>
         <div id="result-area" class="result-area hidden" role="status" aria-live="polite" aria-atomic="true">
           <p id="result-msg"></p>
           <pre id="result-output"></pre>

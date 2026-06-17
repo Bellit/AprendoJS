@@ -28,7 +28,7 @@ export function showResult(
     if (result.nextLessonId && onNext) {
       const btn = document.createElement('button');
       btn.id = DOM_IDS.NEXT_LESSON_BTN;
-      btn.className = 'btn btn-next';
+      btn.className = `${CSS_CLASSES.BTN} ${CSS_CLASSES.BTN_NEXT}`;
       btn.textContent = 'Siguiente lección →';
       btn.setAttribute('aria-label', 'Ir a la siguiente lección');
       btn.addEventListener('click', () => onNext(result.nextLessonId!));
@@ -40,6 +40,9 @@ export function showResult(
   } else if (result.status === 'info') {
     resultArea.classList.add(CSS_CLASSES.INFO);
     resultMsg.textContent = result.message;
+  } else if (result.status === 'loading') {
+    resultArea.classList.add(CSS_CLASSES.INFO);
+    resultMsg.innerHTML = `<span class="spinner" aria-hidden="true"></span>${result.message}`;
   } else {
     resultArea.classList.add(CSS_CLASSES.HIDDEN);
   }

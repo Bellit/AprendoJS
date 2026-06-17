@@ -19,6 +19,13 @@ export const DOM_IDS = {
   SIDEBAR: 'sidebar',
   SIDEBAR_OVERLAY: 'sidebar-overlay',
   NEXT_LESSON_BTN: 'next-lesson-btn',
+  PROGRESS_BAR: 'progress-bar',
+  PROGRESS_FILL: 'progress-fill',
+  PROGRESS_TEXT: 'progress-text',
+  SHORTCUTS_BTN: 'shortcuts-btn',
+  SHORTCUTS_MODAL: 'shortcuts-modal',
+  SHORTCUTS_CLOSE_BTN: 'shortcuts-close-btn',
+  SAVE_INDICATOR: 'save-indicator',
 } as const;
 
 export const CSS_CLASSES = {
@@ -32,4 +39,8 @@ export const CSS_CLASSES = {
   INFO: 'info',
   OPEN: 'open',
   CONTENT: '.content',
+  BTN: 'btn',
+  BTN_NEXT: 'btn-next',
+  SIDEBAR_OVERLAY_ACTIVE: 'active',
+  ERROR_LINE: 'error-line',
 } as const;
