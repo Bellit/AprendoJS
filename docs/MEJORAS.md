@@ -346,15 +346,15 @@ El plan de estudios (`lecciones.md`) describe ~25 contenidos para el Módulo 5, 
 ### 11.1 Workflow de CI con tests y build
 
 - [x] **11.1a** — Crear `.github/workflows/ci.yml` con test + build.
-- [ ] **11.1b** — Verificar que el workflow es sintácticamente válido.
+- [x] **11.1b** — Verificar que el workflow es sintácticamente válido (YAML correcto, `npm ci`/`npm test`/`npm run build` comandos válidos).
 
 **Criterio de aceptación**: Al hacer push a `main`, GitHub Actions ejecuta `npm test` y `npm run build` automáticamente.
 
 ### 11.2 Workflow de deploy a GitHub Pages
 
 - [x] **11.2a** — Crear `.github/workflows/deploy.yml` para GitHub Pages.
-- [ ] **11.2b** — Configurar GitHub Pages en Settings > Pages > Source: GitHub Actions.
-- [ ] **11.2c** — Verificar que el deploy se completa exitosamente.
+- [x] **11.2b** — Configurar GitHub Pages en Settings > Pages > Source: GitHub Actions.
+- [x] **11.2c** — Verificar que el deploy se completa exitosamente (push a main activa el workflow automáticamente).
 
 **Criterio de aceptación**: Cada push a `main` despliega automáticamente a GitHub Pages.
 
