@@ -1,3 +1,32 @@
+window.requestAnimationFrame = (cb: FrameRequestCallback) => setTimeout(cb, 0);
+
+if (!Element.prototype.scrollTo) {
+  Element.prototype.scrollTo = () => {};
+}
+
+document.body.innerHTML = `
+  <ul id="lesson-list" class="lesson-list" role="tree"></ul>
+  <div class="content"></div>
+  <div id="progress-bar" class="progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+    <div id="progress-fill" class="progress-fill"></div>
+    <span id="progress-text" class="progress-text">0 / 81 lecciones</span>
+  </div>
+  <div id="shortcuts-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+    <div class="modal-content">
+      <button id="shortcuts-close-btn" class="btn">Cerrar</button>
+    </div>
+  </div>
+  <div id="theory-area"></div>
+  <div id="exercise-area">
+    <h3 id="exercise-title"></h3>
+    <p id="exercise-desc"></p>
+  </div>
+  <div id="result-area" class="hidden">
+    <p id="result-msg"></p>
+    <pre id="result-output"></pre>
+  </div>
+`;
+
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
   value: (query: string) => ({

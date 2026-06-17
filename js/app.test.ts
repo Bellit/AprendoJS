@@ -1,11 +1,12 @@
-import { describe, it, expect, assertType, beforeEach } from 'vitest';
+import { describe, it, expect, assertType, beforeEach, vi, afterEach } from 'vitest';
 import type { Lesson, ModuleGroup, LessonResult, Test, TestExpression } from './types';
 import LESSONS from './lessons';
-import { runTests, getTestExpression, getTestDisplay, selectLesson } from './app';
+import { runTests, getTestExpression, getTestDisplay, selectLesson, updateProgressBar, renderLessonList } from './app';
 import { getProgress, saveProgress, getSavedCode, saveCode, removeSavedCode } from './storage';
 import { renderTheory } from './renderer';
 import { showResult } from './dom';
 import { parseError } from './errors';
+import { setTheme, loadTheme } from './theme';
 
 describe('renderTheory', () => {
   it('convierte **negrita** a <strong>', () => {
@@ -449,5 +450,146 @@ describe('parseError', () => {
     const result = parseError(err);
     expect(result.line).toBe(4);
     expect(result.message).toContain('línea 4');
+  });
+});
+
+describe('Integración', () => {
+  beforeEach(() => {
+    document.body.innerHTML = `
+      <ul id="lesson-list" class="lesson-list" role="tree"></ul>
+      <div id="theory-area"></div>
+      <div id="exercise-area">
+        <h3 id="exercise-title"></h3>
+        <p id="exercise-desc"></p>
+      </div>
+      <div id="result-area" class="hidden">
+        <p id="result-msg"></p>
+        <pre id="result-output"></pre>
+      </div>
+      <div class="content"></div>
+      <div id="progress-bar" class="progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+        <div id="progress-fill" class="progress-fill"></div>
+        <span id="progress-text" class="progress-text">0 / 81 lecciones</span>
+      </div>
+      <div id="shortcuts-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+        <div class="modal-content">
+          <button id="shortcuts-close-btn" class="btn">Cerrar</button>
+        </div>
+      </div>
+    `;
+    renderLessonList();
+  });
+
+  it('selectLesson actualiza theory-area con el HTML de la teoría', () => {
+    selectLesson(LESSONS[0].id);
+    const theoryArea = document.getElementById('theory-area');
+    expect(theoryArea?.innerHTML?.length).toBeGreaterThan(0);
+    expect(theoryArea?.innerHTML).toContain('<p>');
+  });
+
+  it('selectLesson actualiza el título del ejercicio', () => {
+    selectLesson(LESSONS[0].id);
+    const title = document.getElementById('exercise-title');
+    expect(title?.textContent).toBe(LESSONS[0].title);
+  });
+
+  it('renderLessonList produce estructura con módulos y lecciones', () => {
+    const list = document.getElementById('lesson-list');
+    const items = list?.querySelectorAll('li');
+    expect(items?.length).toBeGreaterThan(0);
+    const headers = list?.querySelectorAll('.sidebar__header');
+    expect(headers?.length).toBeGreaterThan(0);
+  });
+});
+
+describe('Tema (setTheme/loadTheme)', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    document.documentElement.removeAttribute('data-theme');
+    document.body.innerHTML = '<button id="theme-toggle"></button>';
+  });
+
+  it('setTheme("dark") establece data-theme="dark" en <html>', () => {
+    setTheme('dark');
+    expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
+  });
+
+  it('setTheme("dark") guarda en localStorage', () => {
+    setTheme('dark');
+    expect(localStorage.getItem('aprendojs_theme')).toBe('dark');
+  });
+
+  it('setTheme("light") establece data-theme="light"', () => {
+    setTheme('light');
+    expect(document.documentElement.getAttribute('data-theme')).toBe('light');
+  });
+
+  it('loadTheme respeta preferencia guardada en localStorage', () => {
+    localStorage.setItem('aprendojs_theme', 'dark');
+    loadTheme();
+    expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
+  });
+
+  it('loadTheme usa prefers-color-scheme si no hay preferencia guardada', () => {
+    vi.spyOn(window, 'matchMedia').mockImplementation(() => ({
+      matches: true,
+      media: '(prefers-color-scheme: dark)',
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: () => false,
+    }));
+    loadTheme();
+    expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
+  });
+});
+
+describe('Progress bar', () => {
+  beforeEach(() => {
+    document.body.innerHTML = `
+      <div id="progress-bar" class="progress-bar" role="progressbar" aria-valuenow="0">
+        <div id="progress-fill" class="progress-fill"></div>
+        <span id="progress-text" class="progress-text">0 / 81 lecciones</span>
+      </div>
+    `;
+  });
+
+  it('updateProgressBar actualiza el texto de progreso', () => {
+    updateProgressBar();
+    const text = document.getElementById('progress-text');
+    expect(text?.textContent).toMatch(/\d+ \/ \d+ lecciones/);
+  });
+
+  it('updateProgressBar actualiza aria-valuenow', () => {
+    updateProgressBar();
+    const bar = document.getElementById('progress-bar');
+    const val = bar?.getAttribute('aria-valuenow');
+    expect(val).toMatch(/^\d+$/);
+  });
+});
+
+describe('Modal de atajos', () => {
+  beforeEach(() => {
+    document.body.innerHTML = `
+      <div id="shortcuts-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+        <div class="modal-content">
+          <button id="shortcuts-close-btn" class="btn">Cerrar</button>
+        </div>
+      </div>
+      <button id="shortcuts-btn" aria-label="Atajos de teclado">⌨</button>
+    `;
+  });
+
+  it('el modal comienza oculto', () => {
+    const modal = document.getElementById('shortcuts-modal');
+    expect(modal?.classList.contains('hidden')).toBe(true);
+  });
+
+  it('el modal tiene role="dialog" y aria-modal', () => {
+    const modal = document.getElementById('shortcuts-modal');
+    expect(modal?.getAttribute('role')).toBe('dialog');
+    expect(modal?.getAttribute('aria-modal')).toBe('true');
   });
 });

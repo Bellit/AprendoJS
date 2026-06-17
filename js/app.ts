@@ -19,7 +19,7 @@ const exerciseTitle = getEl<HTMLHeadingElement>(DOM_IDS.EXERCISE_TITLE);
 const exerciseDesc = getEl<HTMLParagraphElement>(DOM_IDS.EXERCISE_DESC);
 const resultOutput = getEl<HTMLPreElement>(DOM_IDS.RESULT_OUTPUT);
 
-function updateProgressBar(): void {
+export function updateProgressBar(): void {
   const fill = getEl<HTMLDivElement>(DOM_IDS.PROGRESS_FILL);
   const text = getEl<HTMLSpanElement>(DOM_IDS.PROGRESS_TEXT);
   const bar = getEl<HTMLDivElement>(DOM_IDS.PROGRESS_BAR);
@@ -50,10 +50,11 @@ if (lessonListEl) {
   handleHashChange();
 }
 
-function renderLessonList(): void {
-  if (!lessonListEl) return;
+export function renderLessonList(): void {
+  const listEl = getEl<HTMLUListElement>(DOM_IDS.LESSON_LIST);
+  if (!listEl) return;
 
-  lessonListEl.innerHTML = '';
+  listEl.innerHTML = '';
   const groups: ModuleGroup = {};
 
   lessons.forEach(l => {
@@ -70,7 +71,7 @@ function renderLessonList(): void {
     header.textContent = `${module} (${done}/${total})`;
     header.setAttribute('role', 'treeitem');
     header.setAttribute('aria-level', '1');
-    lessonListEl.appendChild(header);
+    listEl.appendChild(header);
 
     modLessons.forEach(lesson => {
       const li = document.createElement('li');
@@ -89,7 +90,7 @@ function renderLessonList(): void {
           selectLesson(lesson.id);
         }
       });
-      lessonListEl.appendChild(li);
+      listEl.appendChild(li);
     });
   });
 }
@@ -152,18 +153,22 @@ export function selectLesson(id: number): void {
     else li.removeAttribute('aria-current');
   });
 
-  exerciseArea?.classList.remove(CSS_CLASSES.HIDDEN);
+  const exArea = getEl<HTMLDivElement>(DOM_IDS.EXERCISE_AREA);
+  exArea?.classList.remove(CSS_CLASSES.HIDDEN);
 
   const resultArea = getEl<HTMLDivElement>(DOM_IDS.RESULT_AREA);
   resultArea?.classList.add(CSS_CLASSES.HIDDEN);
 
-  if (theoryArea) {
-    theoryArea.classList.remove(CSS_CLASSES.HIDDEN);
-    theoryArea.innerHTML = renderTheory(lesson.theory);
+  const thArea = getEl<HTMLDivElement>(DOM_IDS.THEORY_AREA);
+  if (thArea) {
+    thArea.classList.remove(CSS_CLASSES.HIDDEN);
+    thArea.innerHTML = renderTheory(lesson.theory);
   }
 
-  if (exerciseTitle) exerciseTitle.textContent = lesson.title;
-  if (exerciseDesc) exerciseDesc.textContent = lesson.exercise;
+  const exTitle = getEl<HTMLHeadingElement>(DOM_IDS.EXERCISE_TITLE);
+  const exDesc = getEl<HTMLParagraphElement>(DOM_IDS.EXERCISE_DESC);
+  if (exTitle) exTitle.textContent = lesson.title;
+  if (exDesc) exDesc.textContent = lesson.exercise;
 
   if (editor) {
     const saved = getSavedCode(lesson.id);
@@ -173,9 +178,10 @@ export function selectLesson(id: number): void {
 
   requestAnimationFrame(() => {
     document.querySelector(CSS_CLASSES.CONTENT)?.scrollTo(0, 0);
-    if (exerciseTitle) {
-      exerciseTitle.setAttribute('tabindex', '-1');
-      exerciseTitle.focus();
+    const exTitleFocus = getEl<HTMLHeadingElement>(DOM_IDS.EXERCISE_TITLE);
+    if (exTitleFocus) {
+      exTitleFocus.setAttribute('tabindex', '-1');
+      exTitleFocus.focus();
     }
   });
 }
@@ -237,8 +243,9 @@ async function runCode(): Promise<void> {
       highlightErrorLine(result.errorLine);
     }
   }
-  if (resultOutput) {
-    resultOutput.textContent = result.logs.length > 0 ? result.logs.join('\n') : '';
+  const outputEl = getEl<HTMLPreElement>(DOM_IDS.RESULT_OUTPUT);
+  if (outputEl) {
+    outputEl.textContent = result.logs.length > 0 ? result.logs.join('\n') : '';
   }
 }
 
@@ -335,7 +342,8 @@ if (resetBtn) {
     editor?.setValue('');
     removeSavedCode(currentLesson.id);
     getEl<HTMLDivElement>(DOM_IDS.RESULT_AREA)?.classList.add(CSS_CLASSES.HIDDEN);
-    if (resultOutput) resultOutput.textContent = '';
+    const resetOutput = getEl<HTMLPreElement>(DOM_IDS.RESULT_OUTPUT);
+    if (resetOutput) resetOutput.textContent = '';
     editor?.focus();
   });
 }
