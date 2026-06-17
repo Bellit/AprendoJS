@@ -57,6 +57,7 @@ npm run build    # Compilar TS y empaquetar con Vite
 npm run preview  # Vista previa de la build de producción
 npm test         # Ejecutar tests con Vitest
 npm run test:watch  # Tests en modo watch
+npm run typecheck   # Solo typecheck (tsc --noEmit)
 npm run coverage # Tests con reporte de cobertura
 ```
 

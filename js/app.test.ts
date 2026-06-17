@@ -660,6 +660,10 @@ describe('Integración runCode', () => {
       <div id="exercise-area">
         <h3 id="exercise-title"></h3>
         <p id="exercise-desc"></p>
+        <div class="editor-wrapper">
+          <textarea id="editor"></textarea>
+          <span id="save-indicator" class="save-indicator hidden"></span>
+        </div>
       </div>
       <div id="result-area" class="hidden">
         <p id="result-msg"></p>
