@@ -1,3 +1,9 @@
+import { expect } from 'vitest';
+import * as matchers from 'vitest-axe/matchers';
+import 'vitest-axe/extend-expect';
+
+expect.extend(matchers);
+
 window.requestAnimationFrame = (cb: FrameRequestCallback) => setTimeout(cb, 0);
 
 if (!Element.prototype.scrollTo) {
@@ -11,6 +17,7 @@ document.body.innerHTML = `
     <div id="progress-fill" class="progress-fill"></div>
     <span id="progress-text" class="progress-text">0 / 81 lecciones</span>
   </div>
+  <input id="search-input" class="search-input" type="search" placeholder="Buscar lección..." aria-label="Buscar lecciones">
   <div id="shortcuts-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
     <div class="modal-content">
       <button id="shortcuts-close-btn" class="btn">Cerrar</button>

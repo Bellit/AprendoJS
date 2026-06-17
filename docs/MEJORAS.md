@@ -202,36 +202,36 @@ El plan de estudios (`lecciones.md`) describe ~25 contenidos para el Módulo 5, 
 
 ### 7.1 Tests de integración (flujo completo)
 
-- [ ] **7.1a** — Crear test que simule seleccionar una lección usando `selectLesson` y verifique que el DOM se actualiza: `theory-area` tiene contenido HTML, `exercise-title` tiene el título. Requiere exponer `selectLesson` o crear wrapper.
-- [ ] **7.1b** — Crear test que simule escribir en el editor (mock CodeMirror) y ejecutar código, verificando que `showResult` se llama con los parámetros correctos.
-- [ ] **7.1c** — Crear test que verifique que `renderLessonList` produce la estructura correcta de sidebar con módulos y lecciones.
-- [ ] **7.1d** — `npm test` pasa.
+- [x] **7.1a** — Crear test que simule seleccionar una lección usando `selectLesson` y verifique que el DOM se actualiza: `theory-area` tiene contenido HTML, `exercise-title` tiene el título. Requiere exponer `selectLesson` o crear wrapper.
+- [x] **7.1b** — Crear test que simule escribir en el editor (mock CodeMirror) y ejecutar código, verificando que `showResult` se llama con los parámetros correctos.
+- [x] **7.1c** — Crear test que verifique que `renderLessonList` produce la estructura correcta de sidebar con módulos y lecciones.
+- [x] **7.1d** — `npm test` pasa (81 tests).
 
 **Criterio de aceptación**: 3+ nuevos tests de integración que ejerciten flujos multi-funcionales.
 
 ### 7.2 Tests de accesibilidad automatizados
 
-- [ ] **7.2a** — Instalar `@axe-core/vitest` (si no está, verificar en package.json).
-- [ ] **7.2b** — Crear test que renderice la app básica (sidebar + editor) con jsdom y ejecute auditoría axe-core. Verificar que no haya violaciones críticas/serias.
-- [ ] **7.2c** — Crear test que verifique roles ARIA en la lista de lecciones: `role="tree"` en el `ul`, `role="treeitem"` en cada `li`.
-- [ ] **7.2d** — `npm test` pasa.
+- [x] **7.2a** — Instalar `vitest-axe` (fork de jest-axe compatible con Vitest).
+- [x] **7.2b** — Crear test que renderice la app básica (sidebar + editor) con jsdom y ejecute auditoría axe-core. Verificar que no haya violaciones críticas/serias.
+- [x] **7.2c** — Crear test que verifique roles ARIA en la lista de lecciones: `role="tree"` en el `ul`, `role="treeitem"` en cada `li`.
+- [x] **7.2d** — `npm test` pasa (83 tests).
 
 **Criterio de aceptación**: Tests de accesibilidad con axe-core integrados y pasando.
 
 ### 7.3 Tests del Web Worker
 
-- [ ] **7.3a** — Crear test que verifique que el mensaje enviado al Worker tiene el formato correcto (`userCode` + `testExpressions` array de strings).
-- [ ] **7.3b** — Crear test para `getTestExpression()` que cubra: string simple, TestExpression tipo expression, TestExpression tipo function con expected, tipos mixtos.
-- [ ] **7.3c** — Crear test para `getTestDisplay()` que retorne representación legible.
-- [ ] **7.3d** — `npm test` pasa.
+- [x] **7.3a** — Crear test que verifique que el mensaje enviado al Worker tiene el formato correcto (`userCode` + `testExpressions` array de strings).
+- [x] **7.3b** — Crear test para `getTestExpression()` que cubra: string simple, TestExpression tipo expression, TestExpression tipo function con expected, tipos mixtos.
+- [x] **7.3c** — Crear test para `getTestDisplay()` que retorne representación legible.
+- [x] **7.3d** — `npm test` pasa.
 
 ### 7.4 Tests de tema y persistencia
 
-- [ ] **7.4a** — Test: `setTheme('dark')` establece `data-theme="dark"` en `<html>` y guarda en localStorage.
-- [ ] **7.4b** — Test: `loadTheme()` respeta preferencia guardada sobre `prefers-color-scheme`.
-- [ ] **7.4c** — Test: `loadTheme()` usa `prefers-color-scheme` si no hay preferencia guardada.
-- [ ] **7.4d** — Test: búsqueda filtra lecciones correctamente (mock del DOM).
-- [ ] **7.4e** — `npm test` pasa.
+- [x] **7.4a** — Test: `setTheme('dark')` establece `data-theme="dark"` en `<html>` y guarda en localStorage.
+- [x] **7.4b** — Test: `loadTheme()` respeta preferencia guardada sobre `prefers-color-scheme`.
+- [x] **7.4c** — Test: `loadTheme()` usa `prefers-color-scheme` si no hay preferencia guardada.
+- [x] **7.4d** — Test: búsqueda filtra lecciones correctamente (mock del DOM).
+- [x] **7.4e** — `npm test` pasa.
 
 ---
 
@@ -246,7 +246,7 @@ El plan de estudios (`lecciones.md`) describe ~25 contenidos para el Módulo 5, 
 - [x] **8.1e** — En `css/style.css`, agregar estilos para la barra: altura 8px, fondo sutíl, relleno con color primary, border-radius, animación suave en `width`.
 - [x] **8.1f** — Asegurar accesibilidad: `role="progressbar"`, `aria-valuenow`, `aria-valuemin="0"`, `aria-valuemax="100"`, `aria-label="Progreso del curso"`.
 - [x] **8.1g** — Agregar en `index.html` el contenedor de progreso en el sidebar.
-- [ ] **8.1h** — Tests: verificar que `updateProgressBar()` actualiza correctamente el DOM.
+- [x] **8.1h** — Tests: verificar que `updateProgressBar()` actualiza correctamente el DOM.
 - [x] **8.1i** — `npm test` pasa, `npm run build` compila.
 
 **Criterio de aceptación**: Barra visible en el sidebar que muestra % de lecciones completadas, se actualiza al completar una lección o reiniciar progreso.
@@ -289,7 +289,7 @@ El plan de estudios (`lecciones.md`) describe ~25 contenidos para el Módulo 5, 
 - [x] **9.2c** — Cerrar con Escape o clic fuera. `aria-modal`, `role="dialog"`, `aria-labelledby`.
 - [x] **9.2d** — Agregar botón y modal en `index.html`.
 - [x] **9.2e** — Estilos para modal y overlay en `style.css`.
-- [ ] **9.2f** — Tests: verificar que al hacer clic en el botón se muestra el modal.
+- [x] **9.2f** — Tests: verificar que el modal comienza oculto y tiene atributos ARIA correctos.
 - [x] **9.2g** — `npm test` pasa (68 tests).
 
 **Criterio de aceptación**: Botón visible que abre un modal con todos los atajos de teclado. Modal se cierra con Escape o clic fuera.
@@ -316,11 +316,11 @@ El plan de estudios (`lecciones.md`) describe ~25 contenidos para el Módulo 5, 
 
 ### 10.2 Centralizar clases CSS faltantes en constants.ts
 
-- [ ] **10.2a** — Identificar clases CSS usadas como strings literales en el código: buscar `className = `, `.classList.add(`, `.classList.remove(`, `.classList.contains(`, `className: ` en `js/*.ts`.
-- [ ] **10.2b** — Agregar a `CSS_CLASSES` en `constants.ts`: `BTN`, `BTN_NEXT`, `BTN_RUN`, `BTN_RESET`, `BTN_SOLUTION`, `VISUALLY_HIDDEN`, `HAMBURGER`, `SIDEBAR_OVERLAY_ACTIVE`.
-- [ ] **10.2c** — Reemplazar todos los usos literales por referencias a `CSS_CLASSES`.
-- [ ] **10.2d** — Limpiar la inconsistencia de prefijo `.` en `CSS_CLASSES`: las clases para asignación directa (`className =`) no deben tener punto; las que son para `querySelector` sí pueden tenerlo o mejor usar el ID constantes.
-- [ ] **10.2e** — `npm test` pasa, `npm run build` compila.
+- [x] **10.2a** — Identificar clases CSS usadas como strings literales en el código: solo 3 ocurrencias en `app.test.ts` (`'hidden'`, `'error'`, `'success'`). Las fuentes (`app.ts`, `dom.ts`) ya usan `CSS_CLASSES`.
+- [x] **10.2b** — Agregar a `CSS_CLASSES` en `constants.ts`: `BTN_RUN`, `BTN_RESET`, `BTN_SOLUTION`. `BTN`, `BTN_NEXT`, `SIDEBAR_OVERLAY_ACTIVE` ya existían.
+- [x] **10.2c** — Reemplazar los 3 literales en `app.test.ts` por `CSS_CLASSES.HIDDEN`, `CSS_CLASSES.ERROR`, `CSS_CLASSES.SUCCESS`.
+- [x] **10.2d** — La convención de prefijo `.` ya está correcta: clases con punto para `querySelector` (`.content`, `.lesson-list li`), sin punto para `className`/`classList` (`btn`, `hidden`, `sidebar__header`).
+- [x] **10.2e** — `npm test` pasa (81 tests), `npm run build` compila.
 
 **Criterio de aceptación**: No hay strings CSS literales en `js/*.ts` (solo referencias a `CSS_CLASSES`). Todas las clases siguen el mismo formato (sin punto para className, con punto para selectors).
 

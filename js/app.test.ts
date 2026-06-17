@@ -1,12 +1,13 @@
 import { describe, it, expect, assertType, beforeEach, vi, afterEach } from 'vitest';
 import type { Lesson, ModuleGroup, LessonResult, Test, TestExpression } from './types';
 import LESSONS from './lessons';
-import { runTests, getTestExpression, getTestDisplay, selectLesson, updateProgressBar, renderLessonList } from './app';
+import { runTests, getTestExpression, getTestDisplay, selectLesson, updateProgressBar, renderLessonList, filterLessons, runCode, __setEditorForTest } from './app';
 import { getProgress, saveProgress, getSavedCode, saveCode, removeSavedCode } from './storage';
 import { renderTheory } from './renderer';
 import { showResult } from './dom';
 import { parseError } from './errors';
 import { setTheme, loadTheme } from './theme';
+import { CSS_CLASSES } from './constants';
 
 describe('renderTheory', () => {
   it('convierte **negrita** a <strong>', () => {
@@ -317,21 +318,21 @@ describe('showResult (DOM)', () => {
   it('oculta result-area con status idle', () => {
     showResult({ status: 'idle' });
     const area = document.getElementById('result-area');
-    expect(area?.classList.contains('hidden')).toBe(true);
+    expect(area?.classList.contains(CSS_CLASSES.HIDDEN)).toBe(true);
   });
 
   it('muestra mensaje de error', () => {
     showResult({ status: 'error', message: 'Test falló' });
     const msg = document.getElementById('result-msg');
     expect(msg?.textContent).toBe('Test falló');
-    expect(document.getElementById('result-area')?.classList.contains('error')).toBe(true);
+    expect(document.getElementById('result-area')?.classList.contains(CSS_CLASSES.ERROR)).toBe(true);
   });
 
   it('muestra mensaje de exito', () => {
     showResult({ status: 'success', message: 'Correcto!' });
     const msg = document.getElementById('result-msg');
     expect(msg?.textContent).toBe('Correcto!');
-    expect(document.getElementById('result-area')?.classList.contains('success')).toBe(true);
+    expect(document.getElementById('result-area')?.classList.contains(CSS_CLASSES.SUCCESS)).toBe(true);
   });
 
   it('muestra boton siguiente leccion si hay nextLessonId y callback', () => {
@@ -456,6 +457,7 @@ describe('parseError', () => {
 describe('Integración', () => {
   beforeEach(() => {
     document.body.innerHTML = `
+      <input id="search-input" type="search">
       <ul id="lesson-list" class="lesson-list" role="tree"></ul>
       <div id="theory-area"></div>
       <div id="exercise-area">
@@ -499,6 +501,18 @@ describe('Integración', () => {
     expect(items?.length).toBeGreaterThan(0);
     const headers = list?.querySelectorAll('.sidebar__header');
     expect(headers?.length).toBeGreaterThan(0);
+  });
+
+  it('búsqueda filtra elementos de la lista', () => {
+    const items = document.querySelectorAll<HTMLLIElement>('.lesson-list li');
+    const initialCount = items.length;
+    filterLessons('variables');
+    const visible = Array.from(items).filter(li => li.style.display !== 'none');
+    expect(visible.length).toBeGreaterThan(0);
+    expect(visible.length).toBeLessThan(initialCount);
+    filterLessons('');
+    const allVisible = Array.from(items).filter(li => li.style.display !== 'none');
+    expect(allVisible.length).toBe(initialCount);
   });
 });
 
@@ -584,12 +598,156 @@ describe('Modal de atajos', () => {
 
   it('el modal comienza oculto', () => {
     const modal = document.getElementById('shortcuts-modal');
-    expect(modal?.classList.contains('hidden')).toBe(true);
+    expect(modal?.classList.contains(CSS_CLASSES.HIDDEN)).toBe(true);
   });
 
   it('el modal tiene role="dialog" y aria-modal', () => {
     const modal = document.getElementById('shortcuts-modal');
     expect(modal?.getAttribute('role')).toBe('dialog');
     expect(modal?.getAttribute('aria-modal')).toBe('true');
+  });
+});
+
+describe('Accesibilidad (axe-core)', () => {
+  beforeEach(() => {
+    document.body.innerHTML = `
+      <input id="search-input" type="search" aria-label="Buscar lecciones">
+      <nav aria-label="Lecciones">
+        <ul id="lesson-list" class="lesson-list" role="tree">
+          <li class="sidebar__header" role="treeitem" aria-level="1">Fundamentos (0/10)</li>
+          <li role="treeitem" tabindex="0">Variables con let</li>
+          <li role="treeitem" tabindex="0">Variables con const</li>
+        </ul>
+      </nav>
+      <div class="content">
+        <div id="theory-area"></div>
+        <div id="exercise-area">
+          <h3 id="exercise-title">Variables con let</h3>
+          <p id="exercise-desc">Escribe una variable</p>
+        </div>
+        <div id="result-area" class="hidden">
+          <p id="result-msg"></p>
+        </div>
+      </div>
+    `;
+  });
+
+  it('no tiene violaciones críticas ni serias', async () => {
+    const { axe } = await import('vitest-axe');
+    const results = await axe(document.body);
+    const criticalSerious = results.violations.filter(
+      v => v.impact === 'critical' || v.impact === 'serious'
+    );
+    expect(criticalSerious).toHaveLength(0);
+  });
+
+  it('la lista de lecciones tiene roles ARIA correctos', async () => {
+    const { axe } = await import('vitest-axe');
+    const results = await axe(document.getElementById('lesson-list')!);
+    expect(results.violations).toHaveLength(0);
+  });
+});
+
+describe('Integración runCode', () => {
+  let originalWorker: typeof Worker;
+  let lastWorkerMessage: unknown = null;
+
+  beforeEach(() => {
+    lastWorkerMessage = null;
+    document.body.innerHTML = `
+      <ul id="lesson-list" class="lesson-list" role="tree"></ul>
+      <div id="theory-area"></div>
+      <div id="exercise-area">
+        <h3 id="exercise-title"></h3>
+        <p id="exercise-desc"></p>
+      </div>
+      <div id="result-area" class="hidden">
+        <p id="result-msg"></p>
+        <pre id="result-output"></pre>
+      </div>
+      <div class="content"></div>
+    `;
+    renderLessonList();
+
+    originalWorker = window.Worker;
+    window.Worker = class MockWorker {
+      onmessage: ((e: { data: unknown }) => void) | null = null;
+      onerror: ((e: ErrorEvent) => void) | null = null;
+      postMessage(data: unknown): void {
+        lastWorkerMessage = data;
+        setTimeout(() => {
+          this.onmessage?.({ data: { passed: true, failedIndex: null, logs: [] } });
+        }, 0);
+      }
+      terminate(): void {}
+    } as unknown as typeof Worker;
+  });
+
+  afterEach(() => {
+    window.Worker = originalWorker;
+    __setEditorForTest(null);
+  });
+
+  it('runCode con código correcto muestra mensaje de éxito', async () => {
+    selectLesson(LESSONS[0].id);
+    const mockEditor = { getValue: () => 'let x = 1;' } as unknown as CodeMirror.Editor;
+    __setEditorForTest(mockEditor);
+
+    await runCode();
+
+    const msg = document.getElementById('result-msg');
+    expect(msg?.textContent).toContain('Correcto');
+    expect(document.getElementById('result-area')?.classList.contains(CSS_CLASSES.SUCCESS)).toBe(true);
+  });
+
+  it('runCode con código vacío muestra mensaje de error', async () => {
+    selectLesson(LESSONS[0].id);
+    const mockEditor = { getValue: () => '' } as unknown as CodeMirror.Editor;
+    __setEditorForTest(mockEditor);
+
+    await runCode();
+
+    const msg = document.getElementById('result-msg');
+    expect(msg?.textContent).toBe('Escribe algo de código antes de ejecutar.');
+    expect(document.getElementById('result-area')?.classList.contains(CSS_CLASSES.ERROR)).toBe(true);
+  });
+
+  it('envía formato correcto al Worker', async () => {
+    selectLesson(LESSONS[0].id);
+    const mockEditor = { getValue: () => 'let x = 1;' } as unknown as CodeMirror.Editor;
+    __setEditorForTest(mockEditor);
+
+    await runCode();
+
+    expect(lastWorkerMessage).not.toBeNull();
+    const msg = lastWorkerMessage as { userCode: string; testExpressions: string[] };
+    expect(msg.userCode).toBe('let x = 1;');
+    expect(Array.isArray(msg.testExpressions)).toBe(true);
+    expect(msg.testExpressions.length).toBeGreaterThan(0);
+  });
+
+  it('runCode con código incorrecto muestra mensaje de fallo', async () => {
+    const failWorker = class FailMockWorker {
+      onmessage: ((e: { data: unknown }) => void) | null = null;
+      onerror: ((e: ErrorEvent) => void) | null = null;
+      postMessage(_data: unknown): void {
+        const w = this;
+        setTimeout(() => {
+          w.onmessage?.({ data: { passed: false, failedIndex: 0, logs: [] } });
+        }, 0);
+      }
+      terminate(): void {}
+    } as unknown as typeof Worker;
+    window.Worker = failWorker;
+
+    selectLesson(LESSONS[0].id);
+    const mockEditor = { getValue: () => 'let x = "incorrecto";' } as unknown as CodeMirror.Editor;
+    __setEditorForTest(mockEditor);
+
+    await runCode();
+
+    const msg = document.getElementById('result-msg');
+    expect(msg?.textContent).toContain('falló');
+    expect(document.getElementById('result-area')?.classList.contains(CSS_CLASSES.ERROR)).toBe(true);
   });
 });

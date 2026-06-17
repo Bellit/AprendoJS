@@ -213,7 +213,7 @@ function getNextLessonId(currentId: number): number | null {
   return lessons[idx + 1].id;
 }
 
-async function runCode(): Promise<void> {
+export async function runCode(): Promise<void> {
   if (!currentLesson || !editor) return;
 
   const userCode = editor.getValue().trim();
@@ -408,35 +408,37 @@ if (themeToggle) {
 }
 loadTheme();
 
+export function filterLessons(query: string): void {
+  const q = query.toLowerCase().trim();
+  const items = getLessonItems();
+  items.forEach(li => {
+    if (li.classList.contains(CSS_CLASSES.MODULE_HEADER)) {
+      li.style.display = '';
+      return;
+    }
+    if (!q) {
+      li.style.display = '';
+      return;
+    }
+    const title = li.textContent?.toLowerCase() || '';
+    li.style.display = title.includes(q) ? '' : 'none';
+  });
+
+  items.forEach(li => {
+    if (li.classList.contains(CSS_CLASSES.MODULE_HEADER)) {
+      li.style.display = 'none';
+    } else if (li.style.display !== 'none') {
+      const header = li.previousElementSibling as HTMLLIElement | null;
+      if (header?.classList.contains(CSS_CLASSES.MODULE_HEADER)) {
+        header.style.display = '';
+      }
+    }
+  });
+}
+
 const searchInput = getEl<HTMLInputElement>(DOM_IDS.SEARCH_INPUT);
 if (searchInput) {
-  searchInput.addEventListener('input', () => {
-    const q = searchInput.value.toLowerCase().trim();
-    const items = getLessonItems();
-    items.forEach(li => {
-      if (li.classList.contains(CSS_CLASSES.MODULE_HEADER)) {
-        li.style.display = '';
-        return;
-      }
-      if (!q) {
-        li.style.display = '';
-        return;
-      }
-      const title = li.textContent?.toLowerCase() || '';
-      li.style.display = title.includes(q) ? '' : 'none';
-    });
-
-    items.forEach(li => {
-      if (li.classList.contains(CSS_CLASSES.MODULE_HEADER)) {
-        li.style.display = 'none';
-      } else if (li.style.display !== 'none') {
-        const header = li.previousElementSibling as HTMLLIElement | null;
-        if (header?.classList.contains(CSS_CLASSES.MODULE_HEADER)) {
-          header.style.display = '';
-        }
-      }
-    });
-  });
+  searchInput.addEventListener('input', () => filterLessons(searchInput.value));
 }
 
 const menuToggle = getEl<HTMLButtonElement>(DOM_IDS.MENU_TOGGLE);
@@ -470,3 +472,8 @@ if (lessonListEl) {
 }
 
 document.addEventListener('DOMContentLoaded', setupEditor);
+
+// Testing helpers
+export function __setEditorForTest(cm: CodeMirror.Editor | null): void {
+  editor = cm;
+}

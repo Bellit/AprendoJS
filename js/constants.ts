@@ -41,6 +41,9 @@ export const CSS_CLASSES = {
   CONTENT: '.content',
   BTN: 'btn',
   BTN_NEXT: 'btn-next',
+  BTN_RUN: 'btn-run',
+  BTN_RESET: 'btn-reset',
+  BTN_SOLUTION: 'btn-solution',
   SIDEBAR_OVERLAY_ACTIVE: 'active',
   ERROR_LINE: 'error-line',
 } as const;
